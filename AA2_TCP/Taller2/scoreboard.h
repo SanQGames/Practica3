@@ -7,6 +7,16 @@
 
 struct Player {
 	std::string name = "tempname";
+	//bool ready = false;
+	//int turn; //turno de los jugadores
+	//int score = 0;
+	sf::TcpSocket* socket; //o algo del estilo para poder saber su port e identificarlo en la lista de clientes
+	//bool answered = false;
+	int lobbyID = -1;
+};
+
+struct PlayerLobby {
+	std::string name = "tempname";
 	bool ready = false;
 	int turn; //turno de los jugadores
 	int score = 0;
@@ -17,13 +27,13 @@ struct Player {
 
 class ScoreBoard {
 
-	std::vector<Player> players;
+	std::vector<PlayerLobby> players;
 public:
 	ScoreBoard() {};
 	~ScoreBoard() {};
 
-	void UpdatePlayer(Player player); //añade/actualiza jugador
-	void DeletePlayer(Player player); //borra jugador
+	void UpdatePlayer(PlayerLobby player); //añade/actualiza jugador
+	void DeletePlayer(PlayerLobby player); //borra jugador
 	std::string Winner(); //añade/actualiza jugador
 };
 
@@ -42,11 +52,15 @@ public:
 	std::string pw = "1234";
 	int maxPlayers = 2;
 	int playerNumber; /*= players.size();*/
+	int curTurn;
 	int maxTurns;	//maxTurns = playerNumber * turnMultiplier;
 	int turnMultiplier;
+	
+	bool gameStarted = false;
+	bool startNewTurn = false;
 
-	std::vector<Player> players;
-	Player* globalPlayerPtr = new Player;
+	std::vector<PlayerLobby*> players;
+	PlayerLobby* globalPlayerPtr = new PlayerLobby;
 	ScoreBoard scoreboard;
 	//GESTIÓN DEL READY
 	/*TODO*/
@@ -54,7 +68,7 @@ public:
 
 public:
 	//Methods	
-	void SendToAll(); //Send message to all. The logic being that if a player wants to send something
+	void SendToAll(sf::Packet); //Send message to all. The logic being that if a player wants to send something
 							 //	(message, image, etc...) it has to be sent always to everyone by the server.
 							 //This allows us to send messages to all players in single lobbies only knowing
 							 //	the lobby the players comes from. We will need a method to check if that player
@@ -75,10 +89,13 @@ public:
 		int readyCount = this->players.size();
 		int i = 0;
 		for (int i = 0; i < this->players.size(); i++) {
-			if (this->players[i].ready) readyCount--;
+			if (this->players[i]->ready) readyCount--;
 		}
 		return readyCount;
 	}
+	void DetectPlayer(); //encuentra player segun turno
+
+	void DetectPlayer(unsigned short port);
 
 	void JoinPlayer(Player playerThatJoined); //Method that adds a player to the players vector and notifies to rest of players that he joined. 
 
