@@ -44,11 +44,17 @@ sf::Color circleColor = sf::Color::White;
 sftools::Chronometer chrono;
 bool firstTimeScreenshot = true;
 
+std::string myName = "";
+
 sf::Uint8 *pixels;
 
 bool nameEntered = false;
 bool nameReply = false;
-enum commands { NOM, DEN, CON, INF, MSG, IMG, WRD, GUD, BAD, WNU, WIN, DIS, END, RNK, RDY, TIM};
+bool lobbySelected = false;
+bool lobbyReply = false;
+enum commands { NOM, DEN, CON, INF, MSG, IMG, WRD, GUD, BAD, WNU, WIN, DIS, END, RNK, RDY, TIM, CRE, COK, CNO, LIS, JOI, JOK, JNO};
+
+std::vector<Lobby> lobbies = std::vector<Lobby>();
 
 Mode SetGetMode(int setOrGet, Mode mode) {
 	std::lock_guard<std::mutex> guard(myMutex);
@@ -82,6 +88,24 @@ void addMessage(std::string s) {
 	aMensajes.push_back(s);
 	if (aMensajes.size() > 25) {
 		aMensajes.erase(aMensajes.begin(), aMensajes.begin() + 1);
+	}
+}
+
+void PrintLobby() {
+	int i = 0;
+	for each (Lobby l in lobbies) {
+		if(l.numPlayers < l.maxPlayers) std::cout << i << ": " << l.name << " " << l.numPlayers << "/" << l.maxPlayers << " PW:" << l.pw << std::endl;
+		i++;
+	}
+}
+
+void FiltrarLobbiesPorNombre(std::string nameToSearch) {
+	//CLR consola
+	system("cls");
+	for (int i = 0; i < lobbies.size(); i++) {
+		if (strcmp(nameToSearch.c_str(), lobbies[i].name.c_str()) == 0) {
+			std::cout << i << ": " << lobbies[i].name << " " << lobbies[i].numPlayers << "/" << lobbies[i].maxPlayers << " PW:" << lobbies[i].pw << std::endl;
+		}
 	}
 }
 
@@ -197,8 +221,44 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 					//desconectar
 					done = true;
 					break;
+				case commands::LIS: {
+					int numLobbies = 0;
+					std::string lobbyName = "";
+					int lobbyID = 0;
+					bool pwNeeded = false;
+					int maxPlayers = 0;
+					int actualPlayers = 0;
+					packet >> numLobbies;
+					for (int i = 0; i < numLobbies; i++) {
+						packet >> lobbyName;
+						packet >> lobbyID;
+						packet >> pwNeeded;
+						packet >> maxPlayers;
+						packet >> actualPlayers;
+						Lobby tempLobby;
+						tempLobby.lobbyId = lobbyID;
+						tempLobby.maxPlayers = maxPlayers;
+						tempLobby.name = lobbyName;
+						tempLobby.numPlayers = actualPlayers;
+						tempLobby.pw = pwNeeded;
+						lobbies.push_back(tempLobby);
+					}
+					lobbyReply = true;
 
+					break;
 				}
+				case commands::JOK: {
+					lobbySelected = true;
+					lobbyReply = true;
+
+					break;
+				}
+				case commands::JNO: {
+					lobbyReply = true;
+					break;
+				}
+
+				}	//</Switch>
 			}
 		}
 	}
@@ -223,6 +283,45 @@ void blockeComunication() {
 
 			nameReply = false;
 			while(!nameReply){} //espera a respuesta de server para cambiar este bool
+		}
+
+		while (!lobbyReply) {} //espera a respuesta de server para cambiar este bool
+
+		//SELECT LOBBY
+		while (!lobbySelected) {	//lobbySelected = true en el recieve del JKO
+			//PRINTLOBBY
+			char filter = 'n';
+			PrintLobby();
+
+			//Filtro
+			std::cin >> filter;
+			if (filter == 'y' || filter == 'Y') {
+				std::string nameToSearch = "";
+				std::cin >> nameToSearch;
+				FiltrarLobbiesPorNombre(nameToSearch);
+			}
+
+			//cin para idLobby
+			int desiredLobby = -1;
+			std::string pass = "";
+			std::cin >> desiredLobby;
+			//if(pw) cin para pass si necesario
+			if (lobbies[desiredLobby].pw) {
+				std::cout << "Password Needed: ";
+				std::cin >> pass;
+			}
+
+			sf::Packet joinLobbyPacket;
+			joinLobbyPacket << commands::JOI;
+			//joinLobbyPacket << myName;
+			joinLobbyPacket << lobbies[desiredLobby].lobbyId;
+			if (lobbies[desiredLobby].pw) { joinLobbyPacket << pass; }
+
+			socket.send(joinLobbyPacket);
+
+			//send
+			lobbyReply = false;
+			while (!lobbyReply) {} //espera a respuesta de server para cambiar este bool
 		}
 
 		sf::Vector2i screenDimensions(800, 600);

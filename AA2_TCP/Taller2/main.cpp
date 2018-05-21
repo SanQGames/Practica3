@@ -1,12 +1,15 @@
 #include <iostream>
 #include <list>
 #include "scoreboard.h"
-enum commands { NOM, DEN, CON, INF, MSG, IMG, WRD, GUD, BAD, WNU, WIN, DIS, END, RNK, RDY, TIM };
+enum commands { NOM, DEN, CON, INF, MSG, IMG, WRD, GUD, BAD, WNU, WIN, DIS, END, RNK, RDY, TIM, CRE, COK, CNO, LIS, JOI, JOK, JNO };
 
 std::vector<std::string> wordsVector{"coche", "robot", "camara", "pelota", "gafas", "libro", "piramide", "pistola", "gato", "caballo", "huevo", "gallina", "sombrero",
 "pokemon", "mario", "sonic", "pacman", "tetris"};
 
 Player* globalPlayerPtr = new Player;
+Lobby* globalLobbyPtr = new Lobby;
+
+std::vector<Lobby*> lobbies = std::vector<Lobby*>();
 
 int RemainingReady(std::vector<Player*> players) {
 	int readyCount = players.size();
@@ -24,6 +27,7 @@ void DetectPlayer(sf::TcpSocket& client, std::vector<Player*> players) { //encue
 	while (!found && i < players.size()) {
 		if (players[i]->socket->getRemotePort() == client.getRemotePort()) {
 			globalPlayerPtr = players[i];
+			//globalLobbyPtr = lobbies[players[i]->lobbyID];
 			found = true;
 		}
 		i++;
@@ -171,7 +175,7 @@ void ControlServidor()
 												client.send(newPacket);
 											}
 										}
-										
+
 									}
 									//Reenviar mensaje a todos los clientes:
 									if (sendWord) {
@@ -183,7 +187,7 @@ void ControlServidor()
 											tempSok.send(newPacket);
 										}
 									}
-									
+
 									break;
 								case NOM:
 									//compara con el resto de players si ya está usado o no
@@ -199,6 +203,7 @@ void ControlServidor()
 										newPacket << commands::CON;
 										client.send(newPacket);
 
+			//CAMBIAR PARA QUE SOLO MANDE A LOS DE SU LOBBY ========================================================================================================================= VA AL NUEVO COMANDO DE JOIN LOBBY
 										//avisamos a todos que se ha conectado un nuevo cliente
 										for (std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it) {
 											sf::TcpSocket& tempSok = **it;
@@ -214,9 +219,11 @@ void ControlServidor()
 									}
 									break;
 								case RDY:
+									//IDENTIFICAR QUÉ LOBBY ESTAMOS
 									if (!gameStarted) {
 										globalPlayerPtr->ready = true;
 										remainingPlayers = RemainingReady(players);
+			//CAMBIAR PARA QUE SOLO MANDE A LOS DE SU LOBBY =========================================================================================================================
 										//avisamos a todos que el jugador está ready
 										for (std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it) {
 											sf::TcpSocket& tempSok = **it;
@@ -265,11 +272,11 @@ void ControlServidor()
 									quizá podria aprovechar y reenviar la imagen al resto, dependiendo de al final como va le code xd
 									*/
 									std::cout << "IMAGE RECEIVED" << std::endl;
-									
+
 									packet >> _w;
 									packet >> _h;
 									arraySize = _w * _h * 4;
-									
+
 									imagePacket << commands::IMG;
 									imagePacket << _w << _h;
 									for (int index = 0; index < arraySize; index++) {
@@ -280,7 +287,7 @@ void ControlServidor()
 									DetectPlayer(curTurn, players);	//Detect current player that is drawing.
 									for (std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it) {
 										sf::TcpSocket& tempSok = **it;
-										
+
 										if (globalPlayerPtr->socket->getRemotePort() != tempSok.getRemotePort()) {	//Only send image to everyone except for the drawer. Which is already drawing the image.
 											tempSok.send(imagePacket);
 											std::cout << "IMAGE SENT" << std::endl;
@@ -297,7 +304,7 @@ void ControlServidor()
 										tempSok.send(newPacket);
 									}
 									startNewTurn = true;
-									
+
 									break;
 								case DIS:
 									/*
@@ -305,7 +312,33 @@ void ControlServidor()
 									*/
 									break;
 
+								case JOI: {
+									int desiredLobbyID = -1;
+									packet >> desiredLobbyID;
+									for (int lbbyIndx = 0; lbbyIndx < lobbies.size(); lbbyIndx++) {
+										if (lobbies[lbbyIndx]->lobbyID == desiredLobbyID) {
+											//COMPROBAR SI ESTÁ LLENO O NO
+											if (lobbies[lbbyIndx]->playerNumber < lobbies[lbbyIndx]->maxPlayers) {
+												//MIRAR QUE NECESITE PASS O NO
+												if (lobbies[lbbyIndx]->needPass) {
+													std::string playerPass = "";
+													packet >> playerPass;
+													//COMPROBAR PASS
+													if (strcmp(playerPass.c_str(), lobbies[lbbyIndx]->pw.c_str()) == 0) {
+														//PASS CORRECTO
+														//JOIN
+													}
+												}
+												else {
+													//JOIN
+												}
+											}
+
+											break;
+										}
+									}
 								}
+								}	//</Switch>
 							}
 						}
 						else if (status == sf::Socket::Disconnected) {

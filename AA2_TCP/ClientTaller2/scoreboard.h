@@ -17,3 +17,13 @@ public:
 	void PrintBoard(); //printea scoreboard
 	void UpdatePlayer(Player player); //añade/actualiza jugador
 };
+
+
+struct Lobby {
+	std::string name;
+	int lobbyId;
+	bool pw = false;
+	int maxPlayers;
+	int numPlayers;
+
+};
