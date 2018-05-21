@@ -1,0 +1,8 @@
+﻿  main.cpp
+main.cpp(117): warning C4129: ' ': secuencia de escape de carácter no reconocida
+  Generando código
+  177 of 181 functions (97.8%) were compiled, the rest were copied from previous compilation.
+    4 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  Generación de código finalizada
+  BoostrapServer.vcxproj -> D:\Documentos\GitHub\AA2_TCP\x64\Release\BoostrapServer.exe

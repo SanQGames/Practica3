@@ -1,0 +1,4 @@
+﻿  main.cpp
+d:\documentos\github\aa2_tcp\boostrapserver\main.cpp(117): warning C4129: ' ': secuencia de escape de carácter no reconocida
+  BoostrapServer.vcxproj -> D:\Documentos\GitHub\AA2_TCP\x64\Debug\BoostrapServer.exe
+  BoostrapServer.vcxproj -> D:\Documentos\GitHub\AA2_TCP\x64\Debug\BoostrapServer.pdb (Partial PDB)
