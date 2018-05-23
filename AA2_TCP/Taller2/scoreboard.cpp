@@ -50,13 +50,23 @@ void Lobby::SendToAll(sf::Packet packet) {
 		this->players[i]->socket->send(packet);
 	}
 }
-void Lobby::DetectPlayer() { //encuentra player segun turno
+
+void Lobby::SendImage(sf::Packet packet) {	//When calling this function lobbyPlayerPtr is already set to the player that is drawing.
+	for (int i = 0; i < this->players.size(); i++) {
+		if (this->lobbyPlayerPtr->socket->getRemotePort() != this->players[i]->socket->getRemotePort()) {
+			this->players[i]->socket->send(packet);
+			std::cout << "IMAGE SENT" << std::endl;
+		}
+	}
+}
+
+void Lobby::DetectPlayerPainting() { //encuentra player segun turno
 	bool found = false;
 	int i = 0;
 	Player* player = new Player;
 	while (!found && i < this->players.size()) {
 		if (this->players[i]->turn == this->curTurn) {
-			this->globalPlayerPtr = this->players[i];
+			this->lobbyPlayerPtr = this->players[i];
 			found = true;
 		}
 		i++;
@@ -68,7 +78,7 @@ void Lobby::DetectPlayer(unsigned short port) { //encuentra player segun turno
 	Player* player = new Player;
 	while (!found && i < this->players.size()) {
 		if (this->players[i]->socket->getRemotePort() == port) {
-			this->globalPlayerPtr = this->players[i];
+			this->lobbyPlayerPtr = this->players[i];
 			found = true;
 		}
 		i++;

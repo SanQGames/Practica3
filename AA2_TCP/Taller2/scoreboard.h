@@ -46,6 +46,7 @@ public:
 	bool checkWords = false;
 
 	std::string word;
+	std::string globalCurWord;
 	int sizeWord = word.size();
 
 	bool needPass = false;
@@ -60,7 +61,7 @@ public:
 	bool startNewTurn = false;
 
 	std::vector<PlayerLobby*> players;
-	PlayerLobby* globalPlayerPtr = new PlayerLobby;
+	PlayerLobby* lobbyPlayerPtr = new PlayerLobby;
 	ScoreBoard scoreboard;
 	//GESTIÓN DEL READY
 	/*TODO*/
@@ -78,6 +79,7 @@ public:
 							 //line 281 (recieve IMG)
 							 //line 294 (recieve TIM)
 
+	void SendImage(sf::Packet);
 
 	bool IsInLobby(std::string playerName); //Checks inside the vector of players inside the lobby to check
 												   // if the player is in it.
@@ -93,7 +95,7 @@ public:
 		}
 		return readyCount;
 	}
-	void DetectPlayer(); //encuentra player segun turno
+	void DetectPlayerPainting(); //encuentra player segun turno
 
 	void DetectPlayer(unsigned short port);
 

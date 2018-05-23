@@ -6,8 +6,8 @@ enum commands { NOM, DEN, CON, INF, MSG, IMG, WRD, GUD, BAD, WNU, WIN, DIS, END,
 std::vector<std::string> wordsVector{"coche", "robot", "camara", "pelota", "gafas", "libro", "piramide", "pistola", "gato", "caballo", "huevo", "gallina", "sombrero",
 "pokemon", "mario", "sonic", "pacman", "tetris"};
 
-Player* globalPlayerPtr = new Player;
-Lobby* globalLobbyPtr = new Lobby;
+Player* globalPlayerPtr = new Player;	//This pointer points to the player that send the message on the GeneralPlayer.
+Lobby* globalLobbyPtr = new Lobby;		//This pointer points to the lobby of the player that sends the message.	globalLobbyPtr->globalPlayerPtr points to the same player but inside the lobby.
 
 std::vector<Lobby*> lobbies = std::vector<Lobby*>();
 /*
@@ -41,7 +41,7 @@ void DetectPlayer(sf::TcpSocket& client, std::vector<Player*> players) { //encue
 	while (!found && i < players.size()) {
 		if (players[i]->socket->getRemotePort() == client.getRemotePort()) {
 			globalPlayerPtr = players[i];
-			DetectLobby(players[i]->lobbyID, client);
+			if(players[i]->lobbyID != -1) DetectLobby(players[i]->lobbyID, client);	//-1 es el set de base de los players cuando se crean en el connect. Si no tiene asignado un lobby este ID será -1. Se tiene que setear a -1 cuando se le devuelve al lobby.
 			found = true;
 		}
 		i++;
@@ -65,7 +65,7 @@ std::string PickWord() { //elige palabra random de la lista
 	if (wordsVector.size() > 0) {
 		int randomPick = rand() % wordsVector.size();
 		wordPicked = wordsVector[randomPick];
-		wordsVector.erase(wordsVector.begin() + randomPick); //asiegura que no se repitan palabras, cuando no hayan mas devolveria platano que es el default
+		//wordsVector.erase(wordsVector.begin() + randomPick); //asiegura que no se repitan palabras, cuando no hayan mas devolveria platano que es el default
 	}
 	return wordPicked;
 }
@@ -159,19 +159,20 @@ void ControlServidor()
 
 									//checkear si el msg es correcto
 									if (globalLobbyPtr->checkWords) {
-										std::string tempWord = " >" + globalCurWord;
-										globalLobbyPtr->DetectPlayer(); // saber quien esta pintando
-										PlayerLobby* wordPlayer = globalLobbyPtr->globalPlayerPtr; //nos guardamos quien esta escribiendo
+										std::string tempWord = " >" + globalLobbyPtr->globalCurWord;
+										globalLobbyPtr->DetectPlayerPainting(); // saber quien esta pintando
+										PlayerLobby* wordPlayer = globalLobbyPtr->lobbyPlayerPtr; //nos guardamos quien esta escribiendo
 										if (strcmp(tempWord.c_str(), strRec.c_str()) == 0) { //comparar que sea la palabra correcta
 											sendWord = false; //no enviar palabra correcta al chat
 											//comprobar si ha sido dibujante o no
-											if (wordPlayer->turn != globalLobbyPtr->globalPlayerPtr->turn && !wordPlayer->answered) { //asegurarse que no se repitan
+											if (wordPlayer->turn != globalLobbyPtr->lobbyPlayerPtr->turn && !wordPlayer->answered) { //asegurarse que no se repitan
 												//gud al jugador, supongo que habria que calcular puntos
 												wordPlayer->answered = true;
 												wordPlayer->score += 1;
 												globalLobbyPtr->scoreboard.UpdatePlayer(*wordPlayer);
 												newPacket << commands::GUD;
 												client.send(newPacket);
+												//CAMBIAR PARA QUE SE MANDE A LOS DEL LOBBY: globalLobbyPtr->SendToAll(packet)
 												for (std::list<sf::TcpSocket*>::iterator it2 = clients.begin(); it2 != clients.end(); ++it2) {
 													sf::TcpSocket& tempSok = **it2;
 
@@ -183,14 +184,14 @@ void ControlServidor()
 										}
 										else {
 											//bad
-											if (wordPlayer->turn != globalLobbyPtr->globalPlayerPtr->turn) { //comprobar que no sea al que ha pintado
+											if (wordPlayer->turn != globalLobbyPtr->lobbyPlayerPtr->turn) { //comprobar que no sea al que ha pintado
 												newPacket << commands::BAD;
 												client.send(newPacket);
 											}
 										}
 
 									}
-									//Reenviar mensaje a todos los clientes:
+									//Reenviar mensaje a todos los clientes: //CAMBIAR PARA QUE SE MANDE A LOS DEL LOBBY: globalLobbyPtr->SendToAll(packet)
 									if (sendWord) {
 										for (std::list<sf::TcpSocket*>::iterator it2 = clients.begin(); it2 != clients.end(); ++it2) {
 											newPacket.clear();
@@ -245,14 +246,14 @@ void ControlServidor()
 								case RDY:
 									//IDENTIFICAR QUÉ LOBBY ESTAMOS
 									if (!globalLobbyPtr->gameStarted) {
-										globalLobbyPtr->globalPlayerPtr->ready = true;
-										remainingPlayers = globalLobbyPtr->RemainingReady();
+										globalLobbyPtr->lobbyPlayerPtr->ready = true;
+										globalLobbyPtr->remainingPlayers = globalLobbyPtr->RemainingReady();
 			//CAMBIAR PARA QUE SOLO MANDE A LOS DE SU LOBBY =========================================================================================================================
 										//avisamos a todos que el jugador está ready
 										for (std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it) {
 											sf::TcpSocket& tempSok = **it;
 											sf::Packet packet;
-											if (remainingPlayers > 0) {
+											if (globalLobbyPtr->remainingPlayers > 0) {
 												std::string playerStr = globalPlayerPtr->name;
 
 												packet << commands::MSG << "EL JUGADOR " + playerStr + " ESTÁ PREPARADO PARA JUGAR (FALTA(n) " + std::to_string(remainingPlayers)
@@ -277,13 +278,13 @@ void ControlServidor()
 											globalLobbyPtr->playerNumber = globalLobbyPtr->players.size();
 											globalLobbyPtr->maxTurns = globalLobbyPtr->playerNumber * 2;
 											//crear orden de los turnos
-											word = PickWord();
-											globalCurWord = word;
-											int sizeWord = word.size();
+											globalLobbyPtr->word = PickWord();
+											globalLobbyPtr->globalCurWord = word;
+											globalLobbyPtr->sizeWord = globalLobbyPtr->word.size();
 											for (int i = 0; i < globalLobbyPtr->playerNumber; i++) {
 												globalLobbyPtr->players[i]->turn = i;
 												if (i == 0) { sf::Packet turnPacket; turnPacket << commands::WRD << word;  globalLobbyPtr->players[i]->socket->send(turnPacket); }
-												else { sf::Packet turnPacket; turnPacket << commands::WNU << globalLobbyPtr->players[0]->name << sizeWord;  globalLobbyPtr->players[i]->socket->send(turnPacket); }
+												else { sf::Packet turnPacket; turnPacket << commands::WNU << globalLobbyPtr->players[0]->name << globalLobbyPtr->sizeWord;  globalLobbyPtr->players[i]->socket->send(turnPacket); }
 												
 												globalLobbyPtr->scoreboard.UpdatePlayer(*globalLobbyPtr->players[i]);
 											}
@@ -309,15 +310,17 @@ void ControlServidor()
 										packet >> tempUint;
 										imagePacket << tempUint;
 									}
-									globalLobbyPtr->DetectPlayer();	//Detect current player that is drawing.
-									for (std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it) {
+									globalLobbyPtr->DetectPlayerPainting();	//Detect current player that is drawing.
+									//CAMIAR PARA QUE SE HAGA INTERNO AL LOBBY.s
+									globalLobbyPtr->SendImage(imagePacket);
+									/*for (std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it) {
 										sf::TcpSocket& tempSok = **it;
 
-										if (globalPlayerPtr->socket->getRemotePort() != tempSok.getRemotePort()) {	//Only send image to everyone except for the drawer. Which is already drawing the image.
+										if (globalLobbyPtr->lobbyPlayerPtr->socket->getRemotePort() != tempSok.getRemotePort()) {	//Only send image to everyone except for the drawer. Which is already drawing the image.
 											tempSok.send(imagePacket);
 											std::cout << "IMAGE SENT" << std::endl;
 										}
-									}
+									}*/
 									globalLobbyPtr->checkWords = true; //start checking words once
 									break;
 								case TIM:
@@ -401,7 +404,7 @@ void ControlServidor()
 
 							DetectPlayer(client, globalPlayers); //identifica al player
 							globalLobbyPtr->DetectPlayer(globalPlayerPtr->socket->getRemotePort()); 
-							if (globalLobbyPtr->globalPlayerPtr->turn == globalLobbyPtr->curTurn % globalLobbyPtr->playerNumber) globalLobbyPtr->startNewTurn = true;  //si es el que pinta empieza nuevo turno
+							if (globalLobbyPtr->lobbyPlayerPtr->turn == globalLobbyPtr->curTurn % globalLobbyPtr->playerNumber) globalLobbyPtr->startNewTurn = true;  //si es el que pinta empieza nuevo turno
 							if (globalLobbyPtr->startNewTurn) std::cout << "el k dibujaba se ha desconectado" << std::endl;
 
 							for (std::list<sf::TcpSocket*>::iterator it2 = clients.begin(); it2 != clients.end(); ++it2) {
@@ -414,18 +417,19 @@ void ControlServidor()
 							selector.remove(client);
 							itTemp.push_back(it); //guardamos iterador del socket desconectado
 
+					//FALTA PONER QUE SE BORRE DEL VECTOR GENERAL DE PLAYERS EN EL MAIN.
 							bool found = false;
 							int i = 0;
 							while (!found && i < globalLobbyPtr->players.size()){
 								if (globalLobbyPtr->players[i]->socket->getRemotePort() == client.getRemotePort()) {
 
-									globalLobbyPtr->scoreboard.DeletePlayer(*globalLobbyPtr->globalPlayerPtr);
+									globalLobbyPtr->scoreboard.DeletePlayer(*globalLobbyPtr->lobbyPlayerPtr);
 									globalLobbyPtr->players.erase(globalLobbyPtr->players.begin() + i);
 									if (globalLobbyPtr->players.size() == 1) {
 										sf::Packet packet;
 										packet << commands::END << "";
 										globalLobbyPtr->players[0]->socket->send(packet);
-										running = false;
+										//running = false;	//NO DEBERÏA CERRARSE
 									}
 									found = true;
 								}
@@ -445,37 +449,39 @@ void ControlServidor()
 							bool nextTurnPossible = false;
 							while (!nextTurnPossible) {
 								globalLobbyPtr->curTurn++;
-								globalLobbyPtr->DetectPlayer();
-								if (globalLobbyPtr->globalPlayerPtr->turn == globalLobbyPtr->curTurn % globalLobbyPtr->playerNumber) { //comprueba que corresponda el turno con el jugador, por si esta desconectado
+								globalLobbyPtr->DetectPlayerPainting();
+								if (globalLobbyPtr->lobbyPlayerPtr->turn == globalLobbyPtr->curTurn % globalLobbyPtr->playerNumber) { //comprueba que corresponda el turno con el jugador, por si esta desconectado
 									nextTurnPossible = true;
 								}
 							}
 							if (globalLobbyPtr->curTurn < globalLobbyPtr->maxTurns) {
 								std::cout << "Turn: " << globalLobbyPtr->curTurn << std::endl;
-								std::string word = PickWord(); //pick a word
-								globalCurWord = word;
+								globalLobbyPtr->word = PickWord(); //pick a word
+								globalLobbyPtr->globalCurWord = globalLobbyPtr->word;
+					//CAMBIAR PARA MANDARLO A LOS DEL LOBBY SOLO
 								for (std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it) {
 									sf::TcpSocket& tempSok = **it;
 									std::string playerStr = globalPlayerPtr->name;
 									sf::Packet packet;
 									if (globalPlayerPtr->socket->getRemotePort() == tempSok.getRemotePort()) {
-										packet << commands::WRD << word;
+										packet << commands::WRD << globalLobbyPtr->word;
 										tempSok.send(packet);
 									}
 									else {
-										int sizeWord = word.size();
-										packet << commands::WNU << playerStr << sizeWord;
+										globalLobbyPtr->sizeWord = globalLobbyPtr->word.size();
+										packet << commands::WNU << playerStr << globalLobbyPtr->sizeWord;
 										tempSok.send(packet);
 									}
 								}
 							}
 							else {
+					//CAMBIAR PARA MANDARLO A LOS DEL LOBBY SOLO
 								for (std::list<sf::TcpSocket*>::iterator it2 = clients.begin(); it2 != clients.end(); ++it2) {
 									sf::TcpSocket& tempSok = **it2;
 									sf::Packet newPacket;
 									newPacket << commands::END << globalLobbyPtr->scoreboard.Winner();
 									tempSok.send(newPacket);
-									running = false;
+									//running = false;	//NO QUEREMOS QUE SE PARE.
 								}
 							}
 						}
