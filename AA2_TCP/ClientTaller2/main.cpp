@@ -257,6 +257,16 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 					lobbyReply = true;
 					break;
 				}
+				case commands::COK: {
+					lobbySelected = true;
+					lobbyReply = true;
+
+					break;
+				}
+				case commands::CNO: {
+					lobbyReply = true;
+					break;
+				}
 
 				}	//</Switch>
 			}
@@ -285,43 +295,89 @@ void blockeComunication() {
 			while(!nameReply){} //espera a respuesta de server para cambiar este bool
 		}
 
-		while (!lobbyReply) {} //espera a respuesta de server para cambiar este bool
+		while (!lobbyReply) {} //espera a respuesta de server LIS para cambiar este bool
 
 		//SELECT LOBBY
 		while (!lobbySelected) {	//lobbySelected = true en el recieve del JKO
 			//PRINTLOBBY
 			char filter = 'n';
-			PrintLobby();
+			char joinMode = 'j';
 
-			//Filtro
-			std::cin >> filter;
-			if (filter == 'y' || filter == 'Y') {
-				std::string nameToSearch = "";
-				std::cin >> nameToSearch;
-				FiltrarLobbiesPorNombre(nameToSearch);
+			std::cout << "Want to join (j) or create (c) a lobby? ";
+			std::cin >> joinMode;
+
+			if (joinMode == 'j' || joinMode == 'J') {
+				PrintLobby();
+
+				//Filtro
+				std::cin >> filter;
+				if (filter == 'y' || filter == 'Y') {
+					std::string nameToSearch = "";
+					std::cin >> nameToSearch;
+					FiltrarLobbiesPorNombre(nameToSearch);
+				}
+
+				//cin para idLobby
+				int desiredLobby = -1;
+				std::string pass = "";
+				std::cin >> desiredLobby;
+				//if(pw) cin para pass si necesario
+				if (lobbies[desiredLobby].pw) {
+					std::cout << "Password Needed: ";
+					std::cin >> pass;
+				}
+
+				sf::Packet joinLobbyPacket;
+				joinLobbyPacket << commands::JOI;
+				//joinLobbyPacket << myName;
+				joinLobbyPacket << lobbies[desiredLobby].lobbyId;
+				if (lobbies[desiredLobby].pw) { joinLobbyPacket << pass; }
+
+				socket.send(joinLobbyPacket);
+
+				//send
+				lobbyReply = false;
+				while (!lobbyReply) {} //espera a respuesta de server para cambiar este bool
+			}
+			else if (joinMode == 'c' || joinMode == 'C') {	//CREATE LOBBY
+				std::string desiredLobbyName = "";
+				int desiredMaxPlayers = 2;
+				int desiredMaxTurns = 2;
+				char passW = 'n';
+				bool passWanted = false;
+				std::string desiredPassword = "1234";
+				sf::Packet createLobbyPacket;
+				createLobbyPacket << commands::CRE;
+
+				std::cout << "What name do you want for your lobby? (no spaces):" << std::endl;
+				std::cin >> desiredLobbyName; //MIRAR SI ESTÁ PILLADO
+				createLobbyPacket << desiredLobbyName;
+
+				std::cout << "Max Players?" << std::endl;
+				std::cin >> desiredMaxPlayers;
+				createLobbyPacket << desiredMaxPlayers;
+
+				std::cout << "Number of turns per player?" << std::endl;
+				std::cin >> desiredMaxTurns;
+				createLobbyPacket << desiredMaxTurns;
+
+				std::cout << "Do you want to put a password? (y/n)" << std::endl;
+				std::cin >> passW;
+				if (passW == 'y' || passW == 'Y') {
+					std::cout << "What Password? (no spaces)" << std::endl;
+					std::cin >> desiredPassword;
+					createLobbyPacket << true;
+					createLobbyPacket << desiredPassword;
+				}
+				else {
+					createLobbyPacket << false;
+				}
+
+				socket.send(createLobbyPacket);
+
 			}
 
-			//cin para idLobby
-			int desiredLobby = -1;
-			std::string pass = "";
-			std::cin >> desiredLobby;
-			//if(pw) cin para pass si necesario
-			if (lobbies[desiredLobby].pw) {
-				std::cout << "Password Needed: ";
-				std::cin >> pass;
-			}
-
-			sf::Packet joinLobbyPacket;
-			joinLobbyPacket << commands::JOI;
-			//joinLobbyPacket << myName;
-			joinLobbyPacket << lobbies[desiredLobby].lobbyId;
-			if (lobbies[desiredLobby].pw) { joinLobbyPacket << pass; }
-
-			socket.send(joinLobbyPacket);
-
-			//send
-			lobbyReply = false;
-			while (!lobbyReply) {} //espera a respuesta de server para cambiar este bool
+			
 		}
 
 		sf::Vector2i screenDimensions(800, 600);

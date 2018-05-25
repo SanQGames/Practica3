@@ -10,6 +10,7 @@ Player* globalPlayerPtr = new Player;	//This pointer points to the player that s
 Lobby* globalLobbyPtr = new Lobby;		//This pointer points to the lobby of the player that sends the message.	globalLobbyPtr->globalPlayerPtr points to the same player but inside the lobby.
 
 std::vector<Lobby*> lobbies = std::vector<Lobby*>();
+int augmentingLobbyID = 0;
 /*
 int RemainingReady(std::vector<Player*> players) {
 	int readyCount = players.size();
@@ -172,14 +173,19 @@ void ControlServidor()
 												globalLobbyPtr->scoreboard.UpdatePlayer(*wordPlayer);
 												newPacket << commands::GUD;
 												client.send(newPacket);
-												//CAMBIAR PARA QUE SE MANDE A LOS DEL LOBBY: globalLobbyPtr->SendToAll(packet)
+												/*//CAMBIAR PARA QUE SE MANDE A LOS DEL LOBBY: globalLobbyPtr->SendToAll(packet)
 												for (std::list<sf::TcpSocket*>::iterator it2 = clients.begin(); it2 != clients.end(); ++it2) {
 													sf::TcpSocket& tempSok = **it2;
 
 													newPacket.clear();
 													newPacket << commands::WIN << wordPlayer->name << wordPlayer->score;
 													tempSok.send(newPacket);
-												}
+												}*/
+
+												//ENVÍO DE PAQUET DE ACIERTO A TODOS LOS JUGADORES DENTRO DEL LOBBY
+												newPacket.clear();
+												newPacket << commands::WIN << wordPlayer->name << wordPlayer->score;
+												globalLobbyPtr->SendToAll(newPacket);
 											}
 										}
 										else {
@@ -193,13 +199,17 @@ void ControlServidor()
 									}
 									//Reenviar mensaje a todos los clientes: //CAMBIAR PARA QUE SE MANDE A LOS DEL LOBBY: globalLobbyPtr->SendToAll(packet)
 									if (sendWord) {
-										for (std::list<sf::TcpSocket*>::iterator it2 = clients.begin(); it2 != clients.end(); ++it2) {
+										/*for (std::list<sf::TcpSocket*>::iterator it2 = clients.begin(); it2 != clients.end(); ++it2) {
 											newPacket.clear();
 											sf::TcpSocket& tempSok = **it2;
 
 											newPacket << commands::MSG << globalPlayerPtr->name << strRec;
 											tempSok.send(newPacket);
-										}
+										}*/
+										//SE MANDA EL MENSAJE A TODOS LOS JUGADORES DEL LOBBY
+										newPacket.clear();
+										newPacket << commands::MSG << globalPlayerPtr->name << strRec;
+										globalLobbyPtr->SendToAll(newPacket);
 									}
 
 									break;
@@ -225,18 +235,18 @@ void ControlServidor()
 											lisPacket << lobbies[i]->lobbyID;
 											lisPacket << lobbies[i]->needPass;
 											lisPacket << lobbies[i]->maxPlayers;
-											lisPacket << lobbies[i]->playerNumber;
+											lisPacket << lobbies[i]->players.size();
 										}
 										client.send(lisPacket);
-			//CAMBIAR PARA QUE SOLO MANDE A LOS DE SU LOBBY ========================================================================================================================= VA AL NUEVO COMANDO DE JOIN LOBBY
-										//avisamos a todos que se ha conectado un nuevo cliente
+										//CAMBIADO PARA QUE SOLO MANDE A LOS DE SU LOBBY EN EL JOI ========================================================================================================================= VA AL NUEVO COMANDO DE JOIN LOBBY
+										/*//avisamos a todos que se ha conectado un nuevo cliente
 										for (std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it) {
 											sf::TcpSocket& tempSok = **it;
 											std::string playerStr = globalPlayerPtr->name;
 											sf::Packet packet;
 											packet << commands::INF << playerStr;
 											tempSok.send(packet);
-										}
+										}*/
 									}
 									else {
 										newPacket << commands::DEN;
@@ -249,7 +259,7 @@ void ControlServidor()
 										globalLobbyPtr->lobbyPlayerPtr->ready = true;
 										globalLobbyPtr->remainingPlayers = globalLobbyPtr->RemainingReady();
 			//CAMBIAR PARA QUE SOLO MANDE A LOS DE SU LOBBY =========================================================================================================================
-										//avisamos a todos que el jugador está ready
+										/*//avisamos a todos que el jugador está ready
 										for (std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it) {
 											sf::TcpSocket& tempSok = **it;
 											sf::Packet packet;
@@ -270,20 +280,42 @@ void ControlServidor()
 
 												globalLobbyPtr->gameStarted = true;
 											}
+										}*/
+
+										for (int playersLobbyIndex = 0; playersLobbyIndex < globalLobbyPtr->players.size(); playersLobbyIndex++) {
+											//sf::TcpSocket& tempSok = **it;
+											sf::Packet packet;
+											if (globalLobbyPtr->remainingPlayers > 0) {
+												std::string playerStr = globalPlayerPtr->name;
+
+												packet << commands::MSG << "EL JUGADOR " + playerStr + " ESTÁ PREPARADO PARA JUGAR (FALTA(n) " + std::to_string(globalLobbyPtr->remainingPlayers)
+													+ " READY(s) PARA EMPEZAR)";
+												globalLobbyPtr->players[playersLobbyIndex]->socket->send(packet);
+											}
+											else if (globalLobbyPtr->players.size() == 1) {
+												packet << commands::MSG << "FALTAN MÁS JUGADORES PARA PODER JUGAR";
+												globalLobbyPtr->players[playersLobbyIndex]->socket->send(packet);
+											}
+											else {
+												packet << commands::MSG << "EMPIEZA LA PARTIDA";
+												globalLobbyPtr->players[playersLobbyIndex]->socket->send(packet);
+
+												globalLobbyPtr->gameStarted = true;
+											}
 										}
 
 										//ya que el juego va a empezar, aprovechamos para setear todo lo necesario y turno 1
 										if (globalLobbyPtr->gameStarted) {
 											globalLobbyPtr->curTurn = 0;
 											globalLobbyPtr->playerNumber = globalLobbyPtr->players.size();
-											globalLobbyPtr->maxTurns = globalLobbyPtr->playerNumber * 2;
+											globalLobbyPtr->maxTurns = globalLobbyPtr->playerNumber * globalLobbyPtr->turnMultiplier;	//CAMBIAR EL 2 POR EL PARÁMETRO SETEADO EN EL CREATE (DONE)
 											//crear orden de los turnos
 											globalLobbyPtr->word = PickWord();
 											globalLobbyPtr->globalCurWord = word;
 											globalLobbyPtr->sizeWord = globalLobbyPtr->word.size();
 											for (int i = 0; i < globalLobbyPtr->playerNumber; i++) {
 												globalLobbyPtr->players[i]->turn = i;
-												if (i == 0) { sf::Packet turnPacket; turnPacket << commands::WRD << word;  globalLobbyPtr->players[i]->socket->send(turnPacket); }
+												if (i == 0) { sf::Packet turnPacket; turnPacket << commands::WRD << globalLobbyPtr->word;  globalLobbyPtr->players[i]->socket->send(turnPacket); }
 												else { sf::Packet turnPacket; turnPacket << commands::WNU << globalLobbyPtr->players[0]->name << globalLobbyPtr->sizeWord;  globalLobbyPtr->players[i]->socket->send(turnPacket); }
 												
 												globalLobbyPtr->scoreboard.UpdatePlayer(*globalLobbyPtr->players[i]);
@@ -326,11 +358,15 @@ void ControlServidor()
 								case TIM:
 									//acaba el tiempo para los players y empieza un turno nuevo
 									globalLobbyPtr->checkWords = false; //stop checking words
+									newPacket.clear();
+									newPacket << commands::TIM;
+									globalLobbyPtr->SendToAll(newPacket);
+									/*
 									for (std::list<sf::TcpSocket*>::iterator it2 = clients.begin(); it2 != clients.end(); ++it2) {
 										sf::TcpSocket& tempSok = **it2;
 										newPacket << commands::TIM;
 										tempSok.send(newPacket);
-									}
+									}*/
 									globalLobbyPtr->startNewTurn = true;
 
 									break;
@@ -340,13 +376,13 @@ void ControlServidor()
 									*/
 									break;
 
-								case JOI: {
+								case JOI: {	//FALTA HACER QUE EL PLAYER SE AÑADA AL LOBBY Y SE NOTIFIQUE (DONE)
 									int desiredLobbyID = -1;
 									packet >> desiredLobbyID;
 									for (int lbbyIndx = 0; lbbyIndx < lobbies.size(); lbbyIndx++) {
 										if (lobbies[lbbyIndx]->lobbyID == desiredLobbyID) {
 											//COMPROBAR SI ESTÁ LLENO O NO
-											if (lobbies[lbbyIndx]->playerNumber < lobbies[lbbyIndx]->maxPlayers) {
+											if (lobbies[lbbyIndx]->players.size() < lobbies[lbbyIndx]->maxPlayers) {	//POSIBLE: CAMBIAR playerNumber por player.size()
 												//MIRAR QUE NECESITE PASS O NO
 												if (lobbies[lbbyIndx]->needPass) {
 													std::string playerPass = "";
@@ -355,6 +391,8 @@ void ControlServidor()
 													if (strcmp(playerPass.c_str(), lobbies[lbbyIndx]->pw.c_str()) == 0) {
 														//PASS CORRECTO JOK
 														//JOIN
+														globalPlayerPtr->lobbyID = desiredLobbyID;
+
 														sf::Packet packOK;
 														packOK << commands::JOK;
 														sf::Packet packInf;
@@ -363,8 +401,13 @@ void ControlServidor()
 
 														globalPlayerPtr->socket->send(packOK);
 														lobbies[lbbyIndx]->SendToAll(packInf);
-
-														lobbies[lbbyIndx]->playerNumber++;
+														
+														PlayerLobby* tempNewPlayerLobby = new PlayerLobby;	//Igualar el socket/nombre/lobbyID al del vector general.
+														tempNewPlayerLobby->socket = globalPlayerPtr->socket;
+														tempNewPlayerLobby->name = globalPlayerPtr->name;
+														tempNewPlayerLobby->lobbyID = desiredLobbyID;
+														lobbies[lbbyIndx]->players.push_back(tempNewPlayerLobby);
+														//lobbies[lbbyIndx]->playerNumber++;							//POSIBLE: CAMBIAR playerNumber por player.size()
 													}
 													else { //contraseña errónea
 														//JNO
@@ -375,6 +418,8 @@ void ControlServidor()
 												} 
 												else { //join directo
 													//JOIN JOK
+													globalPlayerPtr->lobbyID = desiredLobbyID;
+
 													sf::Packet packOK;
 													packOK << commands::JOK;
 													sf::Packet packInf;
@@ -383,7 +428,13 @@ void ControlServidor()
 
 													globalPlayerPtr->socket->send(packOK);
 													lobbies[lbbyIndx]->SendToAll(packInf);
-													lobbies[lbbyIndx]->playerNumber++;
+													
+													PlayerLobby* tempNewPlayerLobby = new PlayerLobby;	//Igualar el socket/nombre/lobbyID al del vector general.
+													tempNewPlayerLobby->socket = globalPlayerPtr->socket;
+													tempNewPlayerLobby->name = globalPlayerPtr->name;
+													tempNewPlayerLobby->lobbyID = desiredLobbyID;
+													lobbies[lbbyIndx]->players.push_back(tempNewPlayerLobby);
+													//lobbies[lbbyIndx]->playerNumber++;
 												}
 											}
 											else { //sala llena
@@ -396,6 +447,66 @@ void ControlServidor()
 											break;
 										}
 									}
+								}
+								case commands::CRE: {
+									std::string desiredLobbyName = "";
+									int desiredMaxPlayers = 2;
+									int desiredMaxTurns = 2;
+									bool passWanted = false;
+									std::string desiredPassword = "1234";
+
+									packet >> desiredLobbyName;
+									bool nameTaken = false;
+									if (lobbies.size() > 0) {
+										for (int lobbiesIndex = 0; lobbiesIndex < lobbies.size(); lobbiesIndex++) {
+											if (strcmp(lobbies[lobbiesIndex]->name.c_str(), desiredLobbyName.c_str()) != 0) { nameTaken = true; }
+										}
+
+										if (nameTaken) {
+											//ENVIAR CNO
+											sf::Packet cnoPacket;
+											cnoPacket << commands::CNO;
+											globalPlayerPtr->socket->send(cnoPacket);
+										} else {
+											//COK
+											packet >> desiredMaxPlayers;
+											packet >> desiredMaxTurns;
+											packet >> passWanted;
+											if (passWanted) {
+												packet >> desiredPassword;
+												//CREAR LOBBY CON PASSWORD
+												Lobby* tempLobby = new Lobby;
+												tempLobby->name = desiredLobbyName;
+												tempLobby->needPass = true;
+												tempLobby->pw = desiredPassword;
+												tempLobby->lobbyID = augmentingLobbyID;
+												tempLobby->maxPlayers = desiredMaxPlayers;
+												tempLobby->turnMultiplier = desiredMaxTurns;
+
+												lobbies.push_back(tempLobby);
+											}
+											else {
+												//CREAR LOBBY SIN PASSWORD
+												Lobby* tempLobby = new Lobby;
+												tempLobby->name = desiredLobbyName;
+												tempLobby->needPass = false;
+												tempLobby->lobbyID = augmentingLobbyID;
+												tempLobby->maxPlayers = desiredMaxPlayers;
+												tempLobby->turnMultiplier = desiredMaxTurns;
+
+												lobbies.push_back(tempLobby);
+											}
+											
+											//ENVIAR COK
+											sf::Packet cokPacket;
+											cokPacket << commands::COK;
+											cokPacket << augmentingLobbyID;
+											globalPlayerPtr->socket->send(cokPacket);
+											augmentingLobbyID++;
+										}
+									}
+
+									break;
 								}
 								}	//</Switch>
 							}
@@ -439,7 +550,8 @@ void ControlServidor()
 						}
 						else {
 							std::cout << "Error al recibir de " << client.getRemotePort() << std::endl;
-						}
+						} //</RECIEVE>
+
 						//simular turno nuevo (hacer que el juego se acabe al llegar a max turns)
 						if (globalLobbyPtr->startNewTurn) {
 							globalLobbyPtr->startNewTurn = false;
@@ -458,8 +570,13 @@ void ControlServidor()
 								std::cout << "Turn: " << globalLobbyPtr->curTurn << std::endl;
 								globalLobbyPtr->word = PickWord(); //pick a word
 								globalLobbyPtr->globalCurWord = globalLobbyPtr->word;
-					//CAMBIAR PARA MANDARLO A LOS DEL LOBBY SOLO
-								for (std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it) {
+								globalLobbyPtr->sizeWord = globalLobbyPtr->word.size();
+								for (int i = 0; i < globalLobbyPtr->players.size(); i++) {
+									if (i == 0) { sf::Packet turnPacket; turnPacket << commands::WRD << globalLobbyPtr->word;  globalLobbyPtr->players[i]->socket->send(turnPacket); }
+									else { sf::Packet turnPacket; turnPacket << commands::WNU << globalLobbyPtr->lobbyPlayerPtr->name << globalLobbyPtr->sizeWord;  globalLobbyPtr->players[i]->socket->send(turnPacket); }
+								}
+								//CAMBIADO PARA MANDARLO A LOS DEL LOBBY SOLO
+								/*for (std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it) {
 									sf::TcpSocket& tempSok = **it;
 									std::string playerStr = globalPlayerPtr->name;
 									sf::Packet packet;
@@ -472,7 +589,7 @@ void ControlServidor()
 										packet << commands::WNU << playerStr << globalLobbyPtr->sizeWord;
 										tempSok.send(packet);
 									}
-								}
+								}*/
 							}
 							else {
 					//CAMBIAR PARA MANDARLO A LOS DEL LOBBY SOLO

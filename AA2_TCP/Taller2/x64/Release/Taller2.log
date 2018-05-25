@@ -1,16 +1,12 @@
 ﻿C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\VC\VCTargets\Microsoft.CppBuild.targets(387,5): warning MSB8028: El directorio intermedio (x64\Release\) contiene archivos compartidos de otro proyecto (Taller2.vcxproj). Esto puede dar lugar a un comportamiento incorrecto de limpieza y recompilación.
   main.cpp
-e:\yosm\documents\uni\3r\3r2sem\redes\bloc3\practica3\aa2_tcp\taller2\scoreboard.h(49): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
-e:\yosm\documents\uni\3r\3r2sem\redes\bloc3\practica3\aa2_tcp\taller2\scoreboard.h(89): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
-main.cpp(277): warning C4267: '=': conversión de 'size_t' a 'int'; posible pérdida de datos
-main.cpp(282): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
-main.cpp(466): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
-  scoreboard.cpp
-e:\yosm\documents\uni\3r\3r2sem\redes\bloc3\practica3\aa2_tcp\taller2\scoreboard.h(49): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
-e:\yosm\documents\uni\3r\3r2sem\redes\bloc3\practica3\aa2_tcp\taller2\scoreboard.h(89): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
+d:\documentos\github\practica3\practica3\aa2_tcp\taller2\scoreboard.h(50): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
+d:\documentos\github\practica3\practica3\aa2_tcp\taller2\scoreboard.h(91): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
+main.cpp(310): warning C4267: '=': conversión de 'size_t' a 'int'; posible pérdida de datos
+main.cpp(315): warning C4267: '=': conversión de 'size_t' a 'int'; posible pérdida de datos
+main.cpp(573): warning C4267: '=': conversión de 'size_t' a 'int'; posible pérdida de datos
+main.cpp(153): warning C4101: 'remainingPlayers': variable local sin referencia
   Generando código
-  562 of 568 functions (98.9%) were compiled, the rest were copied from previous compilation.
-    179 functions were new in current compilation
-    0 functions had inline decision re-evaluated but remain unchanged
+  All 603 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
   Generación de código finalizada
-  Taller2.vcxproj -> E:\Yosm\Documents\uni\3r\3r2sem\redes\bloc3\Practica3\AA2_TCP\x64\Release\Server_AA2_ TCP.exe
+  Taller2.vcxproj -> D:\Documentos\GitHub\Practica3\Practica3\AA2_TCP\x64\Release\Server_AA2_ TCP.exe
