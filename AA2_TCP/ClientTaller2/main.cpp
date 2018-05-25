@@ -92,11 +92,13 @@ void addMessage(std::string s) {
 }
 
 void PrintLobby() {
+	std::cout << "entered printlobby" << std::endl;
 	int i = 0;
 	for each (Lobby l in lobbies) {
 		if(l.numPlayers < l.maxPlayers) std::cout << i << ": " << l.name << " " << l.numPlayers << "/" << l.maxPlayers << " PW:" << l.pw << std::endl;
 		i++;
 	}
+	std::cout << "exit printlobby" << std::endl;
 }
 
 void FiltrarLobbiesPorNombre(std::string nameToSearch) {
@@ -222,6 +224,7 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 					done = true;
 					break;
 				case commands::LIS: {
+					std::cout << "received LIS" << std::endl;
 					int numLobbies = 0;
 					std::string lobbyName = "";
 					int lobbyID = 0;
@@ -229,6 +232,7 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 					int maxPlayers = 0;
 					int actualPlayers = 0;
 					packet >> numLobbies;
+					std::cout << numLobbies << std::endl;
 					for (int i = 0; i < numLobbies; i++) {
 						packet >> lobbyName;
 						packet >> lobbyID;
@@ -258,6 +262,7 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 					break;
 				}
 				case commands::COK: {
+					std::cout << "received COK" << std::endl;
 					lobbySelected = true;
 					lobbyReply = true;
 
@@ -310,8 +315,10 @@ void blockeComunication() {
 				PrintLobby();
 
 				//Filtro
+				std::cout << "Press 'y' to filter: ";
 				std::cin >> filter;
 				if (filter == 'y' || filter == 'Y') {
+					std::cout << "Type the name of the server you want to find: ";
 					std::string nameToSearch = "";
 					std::cin >> nameToSearch;
 					FiltrarLobbiesPorNombre(nameToSearch);
@@ -320,6 +327,7 @@ void blockeComunication() {
 				//cin para idLobby
 				int desiredLobby = -1;
 				std::string pass = "";
+				std::cout << "Please type the number of the lobby you want to join: ";
 				std::cin >> desiredLobby;
 				//if(pw) cin para pass si necesario
 				if (lobbies[desiredLobby].pw) {
@@ -334,10 +342,6 @@ void blockeComunication() {
 				if (lobbies[desiredLobby].pw) { joinLobbyPacket << pass; }
 
 				socket.send(joinLobbyPacket);
-
-				//send
-				lobbyReply = false;
-				while (!lobbyReply) {} //espera a respuesta de server para cambiar este bool
 			}
 			else if (joinMode == 'c' || joinMode == 'C') {	//CREATE LOBBY
 				std::string desiredLobbyName = "";
@@ -374,10 +378,10 @@ void blockeComunication() {
 				}
 
 				socket.send(createLobbyPacket);
-
 			}
+			lobbyReply = false;
+			while (!lobbyReply) {} //espera a respuesta de server para cambiar este bool
 
-			
 		}
 
 		sf::Vector2i screenDimensions(800, 600);

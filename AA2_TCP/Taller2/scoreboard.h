@@ -88,10 +88,10 @@ public:
 							  //Also checks if it should print itself: if(listed) {/*PRINT*/}
 
 	int RemainingReady() {
-		int readyCount = this->players.size();
-		int i = 0;
-		for (int i = 0; i < this->players.size(); i++) {
-			if (this->players[i]->ready) readyCount--;
+		int readyCount = this->maxPlayers;
+		for (int indexASD = 0; indexASD < this->players.size(); indexASD++) {
+			if (this->players[indexASD]->ready) readyCount--;
+			if (this->players[indexASD]->ready) std::cout << "player " << this->players[indexASD]->name << " detected ready" << std::endl;
 		}
 		return readyCount;
 	}

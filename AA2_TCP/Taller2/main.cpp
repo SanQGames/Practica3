@@ -229,13 +229,17 @@ void ControlServidor()
 										//creo y envío paquete LIS
 										sf::Packet lisPacket;
 										lisPacket << commands::LIS;
-										lisPacket << lobbies.size();
+										int lobSize = lobbies.size();
+										lisPacket << lobSize;
+										std::cout << "sending LIS " << lobbies.size() << std::endl;
 										for (int i = 0; i < lobbies.size(); i++) {
 											lisPacket << lobbies[i]->name;
 											lisPacket << lobbies[i]->lobbyID;
 											lisPacket << lobbies[i]->needPass;
 											lisPacket << lobbies[i]->maxPlayers;
-											lisPacket << lobbies[i]->players.size();
+											int playerSize = lobbies[i]->players.size();
+											lisPacket << playerSize;
+											std::cout << i << ":  " << lobbies[i]->name << " " << lobbies[i]->maxPlayers << " " << lobbies[i]->needPass << std::endl;
 										}
 										client.send(lisPacket);
 										//CAMBIADO PARA QUE SOLO MANDE A LOS DE SU LOBBY EN EL JOI ========================================================================================================================= VA AL NUEVO COMANDO DE JOIN LOBBY
@@ -377,6 +381,7 @@ void ControlServidor()
 									break;
 
 								case JOI: {	//FALTA HACER QUE EL PLAYER SE AÑADA AL LOBBY Y SE NOTIFIQUE (DONE)
+									std::cout << "received JOI" << std::endl;
 									int desiredLobbyID = -1;
 									packet >> desiredLobbyID;
 									for (int lbbyIndx = 0; lbbyIndx < lobbies.size(); lbbyIndx++) {
@@ -444,9 +449,9 @@ void ControlServidor()
 												globalPlayerPtr->socket->send(packNO);
 											}
 
-											break;
 										}
 									}
+									break;
 								}
 								case commands::CRE: {
 									std::string desiredLobbyName = "";
@@ -457,9 +462,10 @@ void ControlServidor()
 
 									packet >> desiredLobbyName;
 									bool nameTaken = false;
+									std::cout << "received CRE" << std::endl;
 									if (lobbies.size() > 0) {
 										for (int lobbiesIndex = 0; lobbiesIndex < lobbies.size(); lobbiesIndex++) {
-											if (strcmp(lobbies[lobbiesIndex]->name.c_str(), desiredLobbyName.c_str()) != 0) { nameTaken = true; }
+											if (strcmp(lobbies[lobbiesIndex]->name.c_str(), desiredLobbyName.c_str()) == 0) { nameTaken = true; }
 										}
 
 										if (nameTaken) {
@@ -467,6 +473,7 @@ void ControlServidor()
 											sf::Packet cnoPacket;
 											cnoPacket << commands::CNO;
 											globalPlayerPtr->socket->send(cnoPacket);
+											std::cout << "CNO sent" << std::endl;
 										} else {
 											//COK
 											packet >> desiredMaxPlayers;
@@ -502,8 +509,63 @@ void ControlServidor()
 											cokPacket << commands::COK;
 											cokPacket << augmentingLobbyID;
 											globalPlayerPtr->socket->send(cokPacket);
+											PlayerLobby* tempNewPlayerLobby = new PlayerLobby;	//Igualar el socket/nombre/lobbyID al del vector general.
+											tempNewPlayerLobby->socket = globalPlayerPtr->socket;
+											tempNewPlayerLobby->name = globalPlayerPtr->name;
+											tempNewPlayerLobby->lobbyID = augmentingLobbyID;
+											lobbies[lobbies.size() - 1]->players.push_back(tempNewPlayerLobby);
+											//lobbies[lbbyIndx]->playerNumber++;
 											augmentingLobbyID++;
+											std::cout << "COK sent with " << lobbies.size() << " lobbies" << std::endl;
+
 										}
+									}
+									else { //retoccar cuando funcione
+										//COK
+										packet >> desiredMaxPlayers;
+										packet >> desiredMaxTurns;
+										packet >> passWanted;
+										if (passWanted) {
+											packet >> desiredPassword;
+											//CREAR LOBBY CON PASSWORD
+											Lobby* tempLobby = new Lobby;
+											tempLobby->name = desiredLobbyName;
+											tempLobby->needPass = true;
+											tempLobby->pw = desiredPassword;
+											tempLobby->lobbyID = augmentingLobbyID;
+											tempLobby->maxPlayers = desiredMaxPlayers;
+											tempLobby->turnMultiplier = desiredMaxTurns;
+
+											lobbies.push_back(tempLobby);
+										}
+										else {
+											//CREAR LOBBY SIN PASSWORD
+											Lobby* tempLobby = new Lobby;
+											tempLobby->name = desiredLobbyName;
+											tempLobby->needPass = false;
+											tempLobby->lobbyID = augmentingLobbyID;
+											tempLobby->maxPlayers = desiredMaxPlayers;
+											tempLobby->turnMultiplier = desiredMaxTurns;
+
+											lobbies.push_back(tempLobby);
+										}
+
+										//ENVIAR COK
+										sf::Packet cokPacket;
+										cokPacket << commands::COK;
+										cokPacket << augmentingLobbyID;
+										globalPlayerPtr->socket->send(cokPacket);
+
+										PlayerLobby* tempNewPlayerLobby = new PlayerLobby;	//Igualar el socket/nombre/lobbyID al del vector general.
+										tempNewPlayerLobby->socket = globalPlayerPtr->socket;
+										tempNewPlayerLobby->name = globalPlayerPtr->name;
+										tempNewPlayerLobby->lobbyID = augmentingLobbyID;
+										lobbies[lobbies.size() - 1]->players.push_back(tempNewPlayerLobby);
+
+										//lobbies[lbbyIndx]->playerNumber++;
+										augmentingLobbyID++;
+										std::cout << "COK sent" << std::endl;
+										std::cout << "COK sent with " << lobbies.size() << " lobbies" << std::endl;
 									}
 
 									break;
