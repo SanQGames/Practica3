@@ -5,9 +5,9 @@ e:\yosm\documents\uni\3r\3r2sem\redes\bloc3\practica3\aa2_tcp\taller2\scoreboard
 e:\yosm\documents\uni\3r\3r2sem\redes\bloc3\practica3\aa2_tcp\taller2\scoreboard.h(50): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
 e:\yosm\documents\uni\3r\3r2sem\redes\bloc3\practica3\aa2_tcp\taller2\main.cpp(232): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
 e:\yosm\documents\uni\3r\3r2sem\redes\bloc3\practica3\aa2_tcp\taller2\main.cpp(240): warning C4267: 'inicializando': conversión de 'size_t' a 'int'; posible pérdida de datos
-e:\yosm\documents\uni\3r\3r2sem\redes\bloc3\practica3\aa2_tcp\taller2\main.cpp(314): warning C4267: '=': conversión de 'size_t' a 'int'; posible pérdida de datos
-e:\yosm\documents\uni\3r\3r2sem\redes\bloc3\practica3\aa2_tcp\taller2\main.cpp(319): warning C4267: '=': conversión de 'size_t' a 'int'; posible pérdida de datos
-e:\yosm\documents\uni\3r\3r2sem\redes\bloc3\practica3\aa2_tcp\taller2\main.cpp(635): warning C4267: '=': conversión de 'size_t' a 'int'; posible pérdida de datos
+e:\yosm\documents\uni\3r\3r2sem\redes\bloc3\practica3\aa2_tcp\taller2\main.cpp(315): warning C4267: '=': conversión de 'size_t' a 'int'; posible pérdida de datos
+e:\yosm\documents\uni\3r\3r2sem\redes\bloc3\practica3\aa2_tcp\taller2\main.cpp(320): warning C4267: '=': conversión de 'size_t' a 'int'; posible pérdida de datos
+e:\yosm\documents\uni\3r\3r2sem\redes\bloc3\practica3\aa2_tcp\taller2\main.cpp(637): warning C4267: '=': conversión de 'size_t' a 'int'; posible pérdida de datos
 e:\yosm\documents\uni\3r\3r2sem\redes\bloc3\practica3\aa2_tcp\taller2\main.cpp(153): warning C4101: 'remainingPlayers': variable local sin referencia
   Generando código...
   Taller2.vcxproj -> E:\Yosm\Documents\uni\3r\3r2sem\redes\bloc3\Practica3\AA2_TCP\x64\Debug\Server_AA2_ TCP.exe

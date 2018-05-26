@@ -89,9 +89,10 @@ public:
 
 	int RemainingReady() {
 		int readyCount = this->maxPlayers;
+		std::cout << "Max players remaining ready: " << this->maxPlayers << std::endl;
 		for (int indexASD = 0; indexASD < this->players.size(); indexASD++) {
 			if (this->players[indexASD]->ready) readyCount--;
-			if (this->players[indexASD]->ready) std::cout << "player " << this->players[indexASD]->name << " detected ready" << std::endl;
+			std::cout << "player " << this->players[indexASD]->name << " ready as " << this->players[indexASD]->ready << std::endl;
 		}
 		return readyCount;
 	}

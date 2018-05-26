@@ -25,9 +25,9 @@ void DetectLobby(int lobbyID, sf::TcpSocket& sock) {
 	//encontrar lobby
 	bool found = false;
 	int i = 0;
-	Lobby* lobby = new Lobby;
 	while (!found && i < lobbies.size()) {
 		if (lobbies[i]->lobbyID == lobbyID) {
+			std::cout << "found lobby" << std::endl;
 			globalLobbyPtr = lobbies[i];
 			globalLobbyPtr->DetectPlayer(sock.getRemotePort());
 			found = true;
@@ -225,7 +225,7 @@ void ControlServidor()
 									if (!used) {
 										globalPlayerPtr->name = strRec;
 										newPacket << commands::CON;
-										client.send(newPacket);
+										globalPlayerPtr->socket->send(newPacket);
 										//creo y envío paquete LIS
 										sf::Packet lisPacket;
 										lisPacket << commands::LIS;
@@ -261,6 +261,7 @@ void ControlServidor()
 									//IDENTIFICAR QUÉ LOBBY ESTAMOS
 									if (!globalLobbyPtr->gameStarted) {
 										globalLobbyPtr->lobbyPlayerPtr->ready = true;
+										std::cout << globalLobbyPtr->lobbyPlayerPtr->name << std::endl;
 										globalLobbyPtr->remainingPlayers = globalLobbyPtr->RemainingReady();
 			//CAMBIAR PARA QUE SOLO MANDE A LOS DE SU LOBBY =========================================================================================================================
 										/*//avisamos a todos que el jugador está ready
@@ -513,14 +514,14 @@ void ControlServidor()
 											tempNewPlayerLobby->socket = globalPlayerPtr->socket;
 											tempNewPlayerLobby->name = globalPlayerPtr->name;
 											tempNewPlayerLobby->lobbyID = augmentingLobbyID;
-											lobbies[lobbies.size() - 1]->players.push_back(tempNewPlayerLobby);
+											lobbies[int(lobbies.size()) - 1]->players.push_back(tempNewPlayerLobby);
 											//lobbies[lbbyIndx]->playerNumber++;
 											augmentingLobbyID++;
 											std::cout << "COK sent with " << lobbies.size() << " lobbies" << std::endl;
 
 										}
 									}
-									else { //retoccar cuando funcione
+									else { //retocar cuando funcione
 										//COK
 										packet >> desiredMaxPlayers;
 										packet >> desiredMaxTurns;
@@ -560,9 +561,10 @@ void ControlServidor()
 										tempNewPlayerLobby->socket = globalPlayerPtr->socket;
 										tempNewPlayerLobby->name = globalPlayerPtr->name;
 										tempNewPlayerLobby->lobbyID = augmentingLobbyID;
-										lobbies[lobbies.size() - 1]->players.push_back(tempNewPlayerLobby);
-
+										lobbies[int(lobbies.size()) - 1]->players.push_back(tempNewPlayerLobby);
+										std::cout << "Added player who created with port: " << globalPlayerPtr->socket->getRemotePort() << " | " << tempNewPlayerLobby->socket->getRemotePort() << std::endl;
 										//lobbies[lbbyIndx]->playerNumber++;
+										//std::cout << lobbies[int(lobbies.size()) - 1]->players[0]->name << std::endl;
 										augmentingLobbyID++;
 										std::cout << "COK sent" << std::endl;
 										std::cout << "COK sent with " << lobbies.size() << " lobbies" << std::endl;
