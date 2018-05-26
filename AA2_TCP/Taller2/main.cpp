@@ -27,7 +27,6 @@ void DetectLobby(int lobbyID, sf::TcpSocket& sock) {
 	int i = 0;
 	while (!found && i < lobbies.size()) {
 		if (lobbies[i]->lobbyID == lobbyID) {
-			std::cout << "found lobby" << std::endl;
 			globalLobbyPtr = lobbies[i];
 			globalLobbyPtr->DetectPlayer(sock.getRemotePort());
 			found = true;
@@ -412,6 +411,7 @@ void ControlServidor()
 														tempNewPlayerLobby->socket = globalPlayerPtr->socket;
 														tempNewPlayerLobby->name = globalPlayerPtr->name;
 														tempNewPlayerLobby->lobbyID = desiredLobbyID;
+														globalPlayerPtr->lobbyID = desiredLobbyID;
 														lobbies[lbbyIndx]->players.push_back(tempNewPlayerLobby);
 														//lobbies[lbbyIndx]->playerNumber++;							//POSIBLE: CAMBIAR playerNumber por player.size()
 													}
@@ -439,6 +439,7 @@ void ControlServidor()
 													tempNewPlayerLobby->socket = globalPlayerPtr->socket;
 													tempNewPlayerLobby->name = globalPlayerPtr->name;
 													tempNewPlayerLobby->lobbyID = desiredLobbyID;
+													globalPlayerPtr->lobbyID = desiredLobbyID;
 													lobbies[lbbyIndx]->players.push_back(tempNewPlayerLobby);
 													//lobbies[lbbyIndx]->playerNumber++;
 												}
@@ -514,6 +515,7 @@ void ControlServidor()
 											tempNewPlayerLobby->socket = globalPlayerPtr->socket;
 											tempNewPlayerLobby->name = globalPlayerPtr->name;
 											tempNewPlayerLobby->lobbyID = augmentingLobbyID;
+											globalPlayerPtr->lobbyID = augmentingLobbyID;
 											lobbies[int(lobbies.size()) - 1]->players.push_back(tempNewPlayerLobby);
 											//lobbies[lbbyIndx]->playerNumber++;
 											augmentingLobbyID++;
@@ -521,7 +523,7 @@ void ControlServidor()
 
 										}
 									}
-									else { //retocar cuando funcione
+									else { //primer create - retocar
 										//COK
 										packet >> desiredMaxPlayers;
 										packet >> desiredMaxTurns;
@@ -561,6 +563,8 @@ void ControlServidor()
 										tempNewPlayerLobby->socket = globalPlayerPtr->socket;
 										tempNewPlayerLobby->name = globalPlayerPtr->name;
 										tempNewPlayerLobby->lobbyID = augmentingLobbyID;
+										globalPlayerPtr->lobbyID = augmentingLobbyID;
+										std::cout << "Augmenting lobby id " << augmentingLobbyID << std::endl;
 										lobbies[int(lobbies.size()) - 1]->players.push_back(tempNewPlayerLobby);
 										std::cout << "Added player who created with port: " << globalPlayerPtr->socket->getRemotePort() << " | " << tempNewPlayerLobby->socket->getRemotePort() << std::endl;
 										//lobbies[lbbyIndx]->playerNumber++;

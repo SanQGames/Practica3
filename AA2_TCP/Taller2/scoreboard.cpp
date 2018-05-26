@@ -76,9 +76,7 @@ void Lobby::DetectPlayer(unsigned short port) { //encuentra player segun turno
 	bool found = false;
 	int i = 0;
 	while (!found && i < this->players.size()) {
-		std::cout << i << ": " << this->players[i]->name << std::endl;
 		if (this->players[i]->socket->getRemotePort() == port) {
-			std::cout << "found lobby player" << std::endl;
 			this->lobbyPlayerPtr = this->players[i];
 			found = true;
 		}
