@@ -78,7 +78,7 @@ void ControlServidor()
 	//int playerNumber; //players.size() shortcut
 	//int maxTurns;
 	//bool checkWords = false;
-	std::string globalCurWord;
+	//std::string globalCurWord;
 	//ScoreBoard scoreboard;
 	// Create a socket to listen to new connections
 	sf::TcpListener listener;
@@ -159,13 +159,18 @@ void ControlServidor()
 
 									//checkear si el msg es correcto
 									if (globalLobbyPtr->checkWords) {
-										std::string tempWord = " >" + globalLobbyPtr->globalCurWord;
-										globalLobbyPtr->DetectPlayerPainting(); // saber quien esta pintando
+										std::cout << "CHECKING WORDS" << std::endl;
+										std::string tempWord = " >" + globalLobbyPtr->word;
+										std::cout << "Palabra correcta: " << tempWord << std::endl;
+										std::cout << "Palabra enviada: " << strRec << std::endl;
 										PlayerLobby* wordPlayer = globalLobbyPtr->lobbyPlayerPtr; //nos guardamos quien esta escribiendo
+										globalLobbyPtr->DetectPlayerPainting(); // saber quien esta pintando
 										if (strcmp(tempWord.c_str(), strRec.c_str()) == 0) { //comparar que sea la palabra correcta
+											std::cout << "Palabra enviada: " << strRec << std::endl;
 											sendWord = false; //no enviar palabra correcta al chat
 											//comprobar si ha sido dibujante o no
 											if (wordPlayer->turn != globalLobbyPtr->lobbyPlayerPtr->turn && !wordPlayer->answered) { //asegurarse que no se repitan
+												std::cout << "NO HABIA RESPONDIDO ANTES " << wordPlayer->answered << " Y NO ES EL QUE PINTA" << wordPlayer->name << std::endl;
 												//gud al jugador, supongo que habria que calcular puntos
 												wordPlayer->answered = true;
 												wordPlayer->score += 1;
@@ -316,6 +321,7 @@ void ControlServidor()
 											//crear orden de los turnos
 											globalLobbyPtr->word = PickWord();
 											globalLobbyPtr->globalCurWord = word;
+											std::cout << "GAME STARTED: CURR WORLD" << globalLobbyPtr->globalCurWord << std::endl;
 											globalLobbyPtr->sizeWord = globalLobbyPtr->word.size();
 											for (int i = 0; i < globalLobbyPtr->playerNumber; i++) {
 												globalLobbyPtr->players[i]->turn = i;
@@ -360,6 +366,7 @@ void ControlServidor()
 									globalLobbyPtr->checkWords = true; //start checking words once
 									break;
 								case TIM:
+									std::cout << "TIM RECIEVED" << std::endl;
 									//acaba el tiempo para los players y empieza un turno nuevo
 									globalLobbyPtr->checkWords = false; //stop checking words
 									newPacket.clear();
@@ -630,17 +637,19 @@ void ControlServidor()
 							while (!nextTurnPossible) {
 								globalLobbyPtr->curTurn++;
 								globalLobbyPtr->DetectPlayerPainting();
+								std::cout << "POSSIBLE NEXT PLAYER PAINTING: " << globalLobbyPtr->lobbyPlayerPtr->name << std::endl;
 								if (globalLobbyPtr->lobbyPlayerPtr->turn == globalLobbyPtr->curTurn % globalLobbyPtr->playerNumber) { //comprueba que corresponda el turno con el jugador, por si esta desconectado
 									nextTurnPossible = true;
 								}
 							}
+							std::cout << "NEXT PLAYER PAINTING: " << globalLobbyPtr->lobbyPlayerPtr->name << std::endl;
 							if (globalLobbyPtr->curTurn < globalLobbyPtr->maxTurns) {
 								std::cout << "Turn: " << globalLobbyPtr->curTurn << std::endl;
 								globalLobbyPtr->word = PickWord(); //pick a word
 								globalLobbyPtr->globalCurWord = globalLobbyPtr->word;
 								globalLobbyPtr->sizeWord = globalLobbyPtr->word.size();
 								for (int i = 0; i < globalLobbyPtr->players.size(); i++) {
-									if (i == 0) { sf::Packet turnPacket; turnPacket << commands::WRD << globalLobbyPtr->word;  globalLobbyPtr->players[i]->socket->send(turnPacket); }
+									if (globalLobbyPtr->players[i]->turn == globalLobbyPtr->lobbyPlayerPtr->turn) { sf::Packet turnPacket; turnPacket << commands::WRD << globalLobbyPtr->word;  globalLobbyPtr->players[i]->socket->send(turnPacket); }
 									else { sf::Packet turnPacket; turnPacket << commands::WNU << globalLobbyPtr->lobbyPlayerPtr->name << globalLobbyPtr->sizeWord;  globalLobbyPtr->players[i]->socket->send(turnPacket); }
 								}
 								//CAMBIADO PARA MANDARLO A LOS DEL LOBBY SOLO

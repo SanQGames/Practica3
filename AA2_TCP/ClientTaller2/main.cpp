@@ -502,6 +502,7 @@ void blockeComunication() {
 			
 			//Drawing System: ONLY IF MODE == DRAWING | drawing only is set to true if the mode is Drawing.
 			if (drawing && int(time.asSeconds()) < timeToDraw) {
+				std::cout << "TIME: " << time.asMilliseconds() << std::endl;
 				circles.push_back(Circle(radius, sf::Color::Black, sf::Mouse::getPosition(drawingWindow)));
 			}
 			else if (int(time.asSeconds()) >= timeToDraw && !doneDrawing && SetGetMode(1, Mode::NOTHING) == Mode::DRAWING) {
