@@ -4,11 +4,11 @@ d:\documentos\github\practica3\practica3\aa2_tcp\clienttaller2\circle.h(21): war
 d:\documentos\github\practica3\practica3\aa2_tcp\clienttaller2\circle.h(22): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
 d:\documentos\github\practica3\practica3\aa2_tcp\clienttaller2\circle.h(24): warning C4244: 'argumento': conversión de 'int' a 'float'; posible pérdida de datos
 d:\documentos\github\practica3\practica3\aa2_tcp\clienttaller2\circle.h(31): warning C4244: 'argumento': conversión de 'const float' a 'int'; posible pérdida de datos
-d:\documentos\github\practica3\practica3\aa2_tcp\clienttaller2\main.cpp(115): warning C4101: 'receiveBuffer': variable local sin referencia
-d:\documentos\github\practica3\practica3\aa2_tcp\clienttaller2\main.cpp(116): warning C4101: '_received': variable local sin referencia
-d:\documentos\github\practica3\practica3\aa2_tcp\clienttaller2\main.cpp(163): warning C4101: 'tempint': variable local sin referencia
-d:\documentos\github\practica3\practica3\aa2_tcp\clienttaller2\main.cpp(553): warning C4244: 'argumento': conversión de '::size_t' a 'float'; posible pérdida de datos
-d:\documentos\github\practica3\practica3\aa2_tcp\clienttaller2\main.cpp(594): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
+d:\documentos\github\practica3\practica3\aa2_tcp\clienttaller2\main.cpp(119): warning C4101: 'receiveBuffer': variable local sin referencia
+d:\documentos\github\practica3\practica3\aa2_tcp\clienttaller2\main.cpp(120): warning C4101: '_received': variable local sin referencia
+d:\documentos\github\practica3\practica3\aa2_tcp\clienttaller2\main.cpp(167): warning C4101: 'tempint': variable local sin referencia
+d:\documentos\github\practica3\practica3\aa2_tcp\clienttaller2\main.cpp(572): warning C4244: 'argumento': conversión de '::size_t' a 'float'; posible pérdida de datos
+d:\documentos\github\practica3\practica3\aa2_tcp\clienttaller2\main.cpp(619): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
 d:\documentos\github\practica3\practica3\aa2_tcp\clienttaller2\chronometer.h(143): warning C4715: 'sftools::Chronometer::getElapsedTime': no todas las rutas de acceso de control devuelven un valor
   ClientTaller2.vcxproj -> D:\Documentos\GitHub\Practica3\Practica3\AA2_TCP\x64\Debug\Client_AA2_TCP.exe
   ClientTaller2.vcxproj -> D:\Documentos\GitHub\Practica3\Practica3\AA2_TCP\x64\Debug\Client_AA2_TCP.pdb (Partial PDB)

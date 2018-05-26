@@ -48,6 +48,38 @@ void DetectPlayer(sf::TcpSocket& client, std::vector<Player*> players) { //encue
 	}
 }
 
+bool DetectLobbyDisconnect(int lobbyID, sf::TcpSocket& sock) {
+	//encontrar lobby
+	bool found = false;
+	int i = 0;
+	while (!found && i < lobbies.size()) {
+		if (lobbies[i]->lobbyID == lobbyID) {
+			globalLobbyPtr = lobbies[i];
+			globalLobbyPtr->DetectPlayer(sock.getRemotePort());
+			found = true;
+		}
+		i++;
+	}
+
+	return found;
+}
+bool DetectPlayerDisconnect(sf::TcpSocket& client, std::vector<Player*> players) { //encuentra player segun socket, dado que hara falta en varias ocasiones creo que sera util
+																		 //encontrar player comparando remoteport
+	bool found = false;
+	bool lobbyFound = false;
+	int i = 0;
+	while (!found && i < players.size()) {
+		if (players[i]->socket->getRemotePort() == client.getRemotePort()) {
+			globalPlayerPtr = players[i];
+			if (players[i]->lobbyID != -1) lobbyFound = DetectLobbyDisconnect(players[i]->lobbyID, client);	//-1 es el set de base de los players cuando se crean en el connect. Si no tiene asignado un lobby este ID será -1. Se tiene que setear a -1 cuando se le devuelve al lobby.
+			found = true;
+		}
+		i++;
+	}
+
+	return lobbyFound;
+}
+
 //void DetectPlayer(int turn, std::vector<Player*> players) { //encuentra player segun turno
 //	bool found = false;
 //	int i = 0;
@@ -588,39 +620,116 @@ void ControlServidor()
 						}
 						else if (status == sf::Socket::Disconnected) {
 
-							DetectPlayer(client, globalPlayers); //identifica al player
-							globalLobbyPtr->DetectPlayer(globalPlayerPtr->socket->getRemotePort()); 
-							if (globalLobbyPtr->lobbyPlayerPtr->turn == globalLobbyPtr->curTurn % globalLobbyPtr->playerNumber) globalLobbyPtr->startNewTurn = true;  //si es el que pinta empieza nuevo turno
-							if (globalLobbyPtr->startNewTurn) std::cout << "el k dibujaba se ha desconectado" << std::endl;
+							bool playerHasLobby = DetectPlayerDisconnect(client, globalPlayers); //identifica al player
+							//BORRAMOS AL PLAYER DEL VECTOR DE PLAYER DEL LOBBY
+							if (playerHasLobby) {
+								std::cout << "DISCONNECTED HAS LOBBY" << std::endl;
+								if (globalLobbyPtr->gameStarted) {
+									std::cout << "DISCONNECTED GAME STARTED" << std::endl;
+									if (globalLobbyPtr->lobbyPlayerPtr->turn == globalLobbyPtr->curTurn % globalLobbyPtr->playerNumber && globalLobbyPtr->players.size() > 2) globalLobbyPtr->startNewTurn = true;  //si es el que pinta empieza nuevo turno
+									if (globalLobbyPtr->startNewTurn) std::cout << "el k dibujaba se ha desconectado" << std::endl;
+								}
 
-							for (std::list<sf::TcpSocket*>::iterator it2 = clients.begin(); it2 != clients.end(); ++it2) {
-								sf::TcpSocket& tempSok = **it2;
-								sf::Packet newPacket;
-								newPacket << commands::DIS << globalPlayerPtr->name << globalPlayerPtr->name;
-								tempSok.send(newPacket);
+								
+								/*for (std::list<sf::TcpSocket*>::iterator it2 = clients.begin(); it2 != clients.end(); ++it2) {
+									sf::TcpSocket& tempSok = **it2;
+									sf::Packet newPacket;
+									newPacket << commands::DIS << globalPlayerPtr->name << globalPlayerPtr->name;
+									tempSok.send(newPacket);
+								}*/
+
+								//AVISA DEL DISCONECT
+								sf::Packet disPacket;
+								disPacket << commands::DIS << globalPlayerPtr->name;
+								globalLobbyPtr->SendToAll(disPacket);
+
+								//FALTA PONER QUE SE BORRE DEL VECTOR GENERAL DE PLAYERS EN EL MAIN.
+								bool found = false;
+								int i = 0;
+								while (!found && i < globalLobbyPtr->players.size()) {
+									if (globalLobbyPtr->players[i]->socket->getRemotePort() == client.getRemotePort()) {
+										std::cout << "DISCONNECTED ERASE PLAYER FROM LOBBY" << std::endl;
+										globalLobbyPtr->scoreboard.DeletePlayer(*globalLobbyPtr->lobbyPlayerPtr);	//Si se pasa un player que no está en el scoreboard no hace nada. Como en el caso que la partida no haya empezado.
+										globalLobbyPtr->players.erase(globalLobbyPtr->players.begin() + i);
+										if (globalLobbyPtr->players.size() == 1) {
+											std::cout << "DISCONNECTED END GAME" << std::endl;
+											sf::Packet packet;
+											packet << commands::END << "ALL DISCONNECTED";
+											globalLobbyPtr->players[0]->socket->send(packet);
+											//running = false;	//NO DEBERÏA CERRARSE
+											sf::Packet lisPacket;
+											lisPacket << commands::LIS;
+											int lobSize = lobbies.size();
+											lisPacket << lobSize;
+											std::cout << "sending LIS " << lobbies.size() << std::endl;
+											for (int i = 0; i < lobbies.size(); i++) {
+												lisPacket << lobbies[i]->name;
+												lisPacket << lobbies[i]->lobbyID;
+												lisPacket << lobbies[i]->needPass;
+												lisPacket << lobbies[i]->maxPlayers;
+												int playerSize = lobbies[i]->players.size();
+												lisPacket << playerSize;
+												//std::cout << i << ":  " << lobbies[i]->name << " " << lobbies[i]->maxPlayers << " " << lobbies[i]->needPass << std::endl;
+											}
+											globalLobbyPtr->players[0]->socket->send(lisPacket);
+
+											//RESETEAMOS EL LOBBYID DEL PLAYER QUE QUEDA A -1 EN EL VECTOR DE PLAYERS DEL MAIN
+											for (int playersConnectedIndex = 0; playersConnectedIndex < globalPlayers.size(); playersConnectedIndex++) {
+												if (globalPlayers[playersConnectedIndex]->socket->getRemotePort() != globalLobbyPtr->players[0]->socket->getRemotePort()) {
+													globalPlayers[playersConnectedIndex]->lobbyID = -1;
+												}
+											}
+
+											//BORRAR EL LOBBY:
+											int lobbiesIndex = 0;
+											bool lobbyFound = false;
+											while (lobbiesIndex < lobbies.size() && !lobbyFound) {
+												if (lobbies[lobbiesIndex]->lobbyID == globalLobbyPtr->lobbyID) {
+													//BORRAR ESTE LOBBY
+													std::cout << "ERASING LOBBY" << lobbies[lobbiesIndex]->name << std::endl;
+													lobbies.erase(lobbies.begin() + lobbiesIndex);
+													lobbyFound = true;
+												}
+												lobbiesIndex++;
+											}
+										} else if (globalLobbyPtr->players.size() == 0) {
+											//BORRAR EL LOBBY:
+											int lobbiesIndex = 0;
+											bool lobbyFound = false;
+											while (lobbiesIndex < lobbies.size() && !lobbyFound) {
+												if (lobbies[lobbiesIndex]->lobbyID == globalLobbyPtr->lobbyID) {
+													//BORRAR ESTE LOBBY
+													std::cout << "ERASING LOBBY" << lobbies[lobbiesIndex]->name << std::endl;
+													lobbies.erase(lobbies.begin() + lobbiesIndex);
+													lobbyFound = true;
+												}
+												lobbiesIndex++;
+											}
+										}
+										found = true;
+									}
+									i++;
+								}
+								std::cout << "DISCONNECTED LOBBY PLAYERS AFTER" << globalLobbyPtr->players.size() << std::endl;
 							}
 
+							//BORRAMOS AL PLAYER DEL VECTOR DE PLAYERS GLOBAL DEL MAIN
+							int deleteIndex = 0;
+							bool playerDisconectedFound = false;
+							while (!playerDisconectedFound && deleteIndex < globalPlayers.size()) {
+								if (globalPlayers[deleteIndex]->socket->getRemotePort() == client.getRemotePort()) {	//ES EL PLAYER QUE SE DESCONECTA
+									globalPlayers.erase(globalPlayers.begin() + deleteIndex);
+									playerDisconectedFound = true;
+								}
+
+								deleteIndex++;
+							}
+
+							//Se elimina del selector y se guarda el iterador para borrar en el clients más tarde
 							selector.remove(client);
 							itTemp.push_back(it); //guardamos iterador del socket desconectado
 
-					//FALTA PONER QUE SE BORRE DEL VECTOR GENERAL DE PLAYERS EN EL MAIN.
-							bool found = false;
-							int i = 0;
-							while (!found && i < globalLobbyPtr->players.size()){
-								if (globalLobbyPtr->players[i]->socket->getRemotePort() == client.getRemotePort()) {
-
-									globalLobbyPtr->scoreboard.DeletePlayer(*globalLobbyPtr->lobbyPlayerPtr);
-									globalLobbyPtr->players.erase(globalLobbyPtr->players.begin() + i);
-									if (globalLobbyPtr->players.size() == 1) {
-										sf::Packet packet;
-										packet << commands::END << "";
-										globalLobbyPtr->players[0]->socket->send(packet);
-										//running = false;	//NO DEBERÏA CERRARSE
-									}
-									found = true;
-								}
-								i++;
-							}
+					
 							std::cout << "Elimino el socket que se ha desconectado\n";
 						}
 						else {
@@ -670,13 +779,61 @@ void ControlServidor()
 							}
 							else {
 					//CAMBIAR PARA MANDARLO A LOS DEL LOBBY SOLO
-								for (std::list<sf::TcpSocket*>::iterator it2 = clients.begin(); it2 != clients.end(); ++it2) {
+								/*for (std::list<sf::TcpSocket*>::iterator it2 = clients.begin(); it2 != clients.end(); ++it2) {
 									sf::TcpSocket& tempSok = **it2;
 									sf::Packet newPacket;
 									newPacket << commands::END << globalLobbyPtr->scoreboard.Winner();
 									tempSok.send(newPacket);
 									//running = false;	//NO QUEREMOS QUE SE PARE.
+								}*/
+								//MANDAMOS EL END A TODOS LOS JUGADORES CONECTADOS AL LOBBY
+								sf::Packet victoryPacket;
+								victoryPacket << commands::END << globalLobbyPtr->scoreboard.Winner();
+								globalLobbyPtr->SendToAll(victoryPacket);
+
+								//MANDAMOS EL LIS A TODOS LOS JUGADORES CONECTADOS AL LOBBY
+								sf::Packet lisPacket;
+								lisPacket << commands::LIS;
+								int lobSize = lobbies.size();
+								lisPacket << lobSize;
+								std::cout << "sending LIS " << lobbies.size() << std::endl;
+								for (int i = 0; i < lobbies.size(); i++) {
+									lisPacket << lobbies[i]->name;
+									lisPacket << lobbies[i]->lobbyID;
+									lisPacket << lobbies[i]->needPass;
+									lisPacket << lobbies[i]->maxPlayers;
+									int playerSize = lobbies[i]->players.size();
+									lisPacket << playerSize;
+									//std::cout << i << ":  " << lobbies[i]->name << " " << lobbies[i]->maxPlayers << " " << lobbies[i]->needPass << std::endl;
 								}
+								globalLobbyPtr->SendToAll(lisPacket);
+								
+								int playersReseted = 0;
+								int playersConnectedIndex = 0;
+								//ESTE BUCLE SOLO SE EJECUTA HASTA QUE SE HAN RESETEADO LOS X JUGADORES DEL LOBBY. DE ESTA MANERA AHORRAMOS ALGO DE TIEMPO DE EJECUCIÓN EVITANDO QUE ITERE POR TODO EL VECTOR SI YA HA RESETEADO A LOS QUE ERA NECESARIO.
+								while (playersReseted < globalLobbyPtr->players.size() && playersConnectedIndex < globalPlayers.size()) {
+									for (int lobbyPlayersConnectedIndex = 0; lobbyPlayersConnectedIndex < globalLobbyPtr->players.size(); lobbyPlayersConnectedIndex++) {
+										if (globalPlayers[playersConnectedIndex]->socket->getRemotePort() == globalLobbyPtr->players[lobbyPlayersConnectedIndex]->socket->getRemotePort()) {
+											globalPlayers[playersConnectedIndex]->lobbyID = -1;
+											playersReseted++;
+										}
+									}
+									playersConnectedIndex++;
+								}
+								
+
+								//BORRAR EL LOBBY:
+								int lobbiesIndex = 0;
+								bool lobbyFound = false;
+								while (lobbiesIndex < lobbies.size() && !lobbyFound) {
+									if (lobbies[lobbiesIndex]->lobbyID == globalLobbyPtr->lobbyID) {
+										//BORRAR ESTE LOBBY
+										lobbies.erase(lobbies.begin() + lobbiesIndex);
+										lobbyFound = true;
+									}
+									lobbiesIndex++;
+								}
+
 							}
 						}
 					}

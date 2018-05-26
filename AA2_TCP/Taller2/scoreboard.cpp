@@ -33,9 +33,9 @@ void ScoreBoard::DeletePlayer(PlayerLobby player) {
 		}
 	}
 	
-	if (!playerFound) {
+	/*if (!playerFound) {
 		players.push_back(player); //añadir player si es nuevo
-	}
+	}*/
 
 	//ordenar
 	std::sort(players.begin(), players.end(), cmpFunc);

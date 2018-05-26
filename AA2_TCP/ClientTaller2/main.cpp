@@ -48,6 +48,10 @@ std::string myName = "";
 
 sf::Uint8 *pixels;
 
+//sf::RenderWindow* drawingWindowPtr;
+//sf::RenderWindow* chatWindowPtr;
+bool recievedEnd = false;
+
 bool nameEntered = false;
 bool nameReply = false;
 bool lobbySelected = false;
@@ -210,18 +214,24 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 				case commands::DIS:
 					packet >> str;
 					addMessage("EL USUARIO: '" + str + "' SE HA DESCONECTADO");
-					done = true;
+					//done = true;
 					break;
 				case commands::TIM:
 					addMessage("SE HA ACABADO EL TIEMPO DE ADIVINAR");
 					SetGetMode(SET, Mode::NOTHING);
 					break;
 				case commands::END:
+					std::vector<Lobby>().swap(lobbies);	//RESETEAMOS EL VECTOR DE LOBBIES
 					//mensaje indicando el ganador de la partida, indicando su nombre
 					packet >> str;
 					addMessage("EL USUARIO '" + str + "' HA GANADO LA PARTIDA. GG");
+					std::cout << "EL USUARIO '" << str << "' HA GANADO LA PARTIDA. GG" << std::endl;
 					//desconectar
-					done = true;
+					//done = true;
+					lobbyReply = false;
+					lobbySelected = false;
+					recievedEnd = true;
+					SetGetMode(SET, Mode::NOTHING);
 					break;
 				case commands::LIS: {
 					std::cout << "received LIS" << std::endl;
@@ -285,6 +295,9 @@ void blockeComunication() {
 
 	while (!done && (st == sf::Socket::Status::Done) && connected)
 	{
+
+		std::cout << "PRE NAME REPLY" << std::endl;
+
 		//name enter phase
 		while (!nameEntered) {
 			//hacer que el usuario escriba el nombre
@@ -300,9 +313,13 @@ void blockeComunication() {
 			while(!nameReply){} //espera a respuesta de server para cambiar este bool
 		}
 
+		std::cout << "PRE LOBBY REPLY" << std::endl;
 		while (!lobbyReply) {} //espera a respuesta de server LIS para cambiar este bool
+		std::cout << "POS LOBBY REPLY" << std::endl;
+
 
 		//SELECT LOBBY
+		std::cout << "PRE LOBBY SELECTED" << std::endl;
 		while (!lobbySelected) {	//lobbySelected = true en el recieve del JKO
 			//PRINTLOBBY
 			char filter = 'n';
@@ -388,11 +405,13 @@ void blockeComunication() {
 
 		sf::RenderWindow window;
 		window.create(sf::VideoMode(screenDimensions.x, screenDimensions.y), windowName);
+		//chatWindowPtr = &window;
 
 		//DRAWING WINDOW:
 		sf::RenderWindow drawingWindow;
 		drawingWindow.create(sf::VideoMode(screenDimensions.x, screenDimensions.y), "Pictionary Drawing Test", sf::Style::Titlebar);
 		drawingWindow.setFramerateLimit(0);
+		//drawingWindowPtr = &drawingWindow;
 
 		//Creating texture with window size.
 		sf::Vector2u windowSize = drawingWindow.getSize();
@@ -585,9 +604,15 @@ void blockeComunication() {
 			}
 			drawingWindow.display();
 
+			if (recievedEnd) {
+				std::cout << "CLOSE WINDOWS" << std::endl;
+				window.close();
+				drawingWindow.close();
+				recievedEnd = false;
+			}
 		}
-		receiveThread.join();
 	}
+	receiveThread.join();
 }
 
 void main() {
