@@ -59,6 +59,7 @@ bool lobbyReply = false;
 enum commands { NOM, DEN, CON, INF, MSG, IMG, WRD, GUD, BAD, WNU, WIN, DIS, END, RNK, RDY, TIM, CRE, COK, CNO, LIS, JOI, JOK, JNO};
 
 std::vector<Lobby> lobbies = std::vector<Lobby>();
+std::vector<std::string> playerNames;
 
 Mode SetGetMode(int setOrGet, Mode mode) {
 	std::lock_guard<std::mutex> guard(myMutex);
@@ -115,6 +116,15 @@ void FiltrarLobbiesPorNombre(std::string nameToSearch) {
 	}
 }
 
+void PrintPlayerNames() {
+	system("cls");
+	std::cout << "Players actuales: ";
+	for (int i = 0; i < playerNames.size(); i++) {
+		std::cout << playerNames[i];
+		if (i != playerNames.size() - 1) std::cout << ", ";
+	}
+	std::cout << std::endl;
+}
 void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 	char receiveBuffer[2000];
 	std::size_t _received;
@@ -138,14 +148,17 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 					std::cout << "Your name has been saved" << std::endl;
 					nameEntered = true;
 					nameReply = true;
+					playerNames.push_back(myName);
 					break;
 				case commands::RNK: 
 					//para recibir le ranking
 					break;
 				case commands::INF:
 					//recibimos nombre y printamos que se ha conectado un user nuevo
-					packet >> str;
+					packet >> str; 
+					playerNames.push_back(str);
 					addMessage("EL USUARIO: '" + str + "' SE HA UNIDO A LA PARTIDA, (USA EL COMANDO READY PARA EMPEZAR)");
+					PrintPlayerNames();
 					break;
 				case commands::MSG:
 					packet >> str >> str2;
@@ -211,17 +224,30 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 					addMessage("EL USUARIO '" + str + "' HA ACERTADO. TIENE " + std::to_string(integer) + " PUNTOS");
 					//actualizar scoreboard local, actualizando la puntuacion del jugador que ha acertado
 					break;
-				case commands::DIS:
+				case commands::DIS: {
 					packet >> str;
 					addMessage("EL USUARIO: '" + str + "' SE HA DESCONECTADO");
+					int nIndex = 0;
+					bool tempFound = false;
+					while (!tempFound && nIndex < playerNames.size()) {
+						if (strcmp(str.c_str(), playerNames[nIndex].c_str()) == 0) {
+							playerNames.erase(playerNames.begin() + nIndex);
+							tempFound = true;
+						}
+						nIndex++;
+					}
+					PrintPlayerNames();
 					//done = true;
 					break;
+				}
 				case commands::TIM:
 					addMessage("SE HA ACABADO EL TIEMPO DE ADIVINAR");
 					SetGetMode(SET, Mode::NOTHING);
 					break;
 				case commands::END:
 					std::vector<Lobby>().swap(lobbies);	//RESETEAMOS EL VECTOR DE LOBBIES
+					std::vector<std::string>().swap(playerNames); //RESETEAMOS EL VECTOR DEL NOMBRE DE JUGADORES
+					playerNames.push_back(myName);
 					//mensaje indicando el ganador de la partida, indicando su nombre
 					packet >> str;
 					addMessage("EL USUARIO '" + str + "' HA GANADO LA PARTIDA. GG");
@@ -264,7 +290,15 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 				case commands::JOK: {
 					lobbySelected = true;
 					lobbyReply = true;
-
+					
+					int curPlayers;
+					packet >> curPlayers;
+ 					for (int i = 0; i < curPlayers; i++) {
+						std::string tempPlayerName;
+						packet >> tempPlayerName;
+						playerNames.push_back(tempPlayerName);
+					}
+					PrintPlayerNames();
 					break;
 				}
 				case commands::JNO: {
@@ -304,6 +338,7 @@ void blockeComunication() {
 			std::string namePlayer;
 			std::cout << "Please enter your name: ";
 			std::cin >> namePlayer;
+			myName = namePlayer;
 			//enviar nombre
 			sf::Packet newP;
 			newP << commands::NOM << namePlayer;

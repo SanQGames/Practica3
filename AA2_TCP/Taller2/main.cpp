@@ -439,6 +439,10 @@ void ControlServidor()
 
 														sf::Packet packOK;
 														packOK << commands::JOK;
+														packOK << int(lobbies[lbbyIndx]->players.size());
+														for (int i = 0; i < lobbies[lbbyIndx]->players.size(); i++) {
+															packOK << lobbies[lbbyIndx]->players[i]->name;
+														}
 														sf::Packet packInf;
 														packInf << commands::INF;
 														packInf << globalPlayerPtr->name;
@@ -467,6 +471,10 @@ void ControlServidor()
 
 													sf::Packet packOK;
 													packOK << commands::JOK;
+													packOK << int(lobbies[lbbyIndx]->players.size());
+													for (int i = 0; i < lobbies[lbbyIndx]->players.size(); i++) {
+														packOK << lobbies[lbbyIndx]->players[i]->name;
+													}
 													sf::Packet packInf;
 													packInf << commands::INF;
 													packInf << globalPlayerPtr->name;
@@ -503,6 +511,7 @@ void ControlServidor()
 
 									packet >> desiredLobbyName;
 									bool nameTaken = false;
+									bool canCreate = true;
 									std::cout << "received CRE" << std::endl;
 									if (lobbies.size() > 0) {
 										for (int lobbiesIndex = 0; lobbiesIndex < lobbies.size(); lobbiesIndex++) {
@@ -511,58 +520,14 @@ void ControlServidor()
 
 										if (nameTaken) {
 											//ENVIAR CNO
+											canCreate = false;
 											sf::Packet cnoPacket;
 											cnoPacket << commands::CNO;
 											globalPlayerPtr->socket->send(cnoPacket);
 											std::cout << "CNO sent" << std::endl;
-										} else {
-											//COK
-											packet >> desiredMaxPlayers;
-											packet >> desiredMaxTurns;
-											packet >> passWanted;
-											if (passWanted) {
-												packet >> desiredPassword;
-												//CREAR LOBBY CON PASSWORD
-												Lobby* tempLobby = new Lobby;
-												tempLobby->name = desiredLobbyName;
-												tempLobby->needPass = true;
-												tempLobby->pw = desiredPassword;
-												tempLobby->lobbyID = augmentingLobbyID;
-												tempLobby->maxPlayers = desiredMaxPlayers;
-												tempLobby->turnMultiplier = desiredMaxTurns;
-
-												lobbies.push_back(tempLobby);
-											}
-											else {
-												//CREAR LOBBY SIN PASSWORD
-												Lobby* tempLobby = new Lobby;
-												tempLobby->name = desiredLobbyName;
-												tempLobby->needPass = false;
-												tempLobby->lobbyID = augmentingLobbyID;
-												tempLobby->maxPlayers = desiredMaxPlayers;
-												tempLobby->turnMultiplier = desiredMaxTurns;
-
-												lobbies.push_back(tempLobby);
-											}
-											
-											//ENVIAR COK
-											sf::Packet cokPacket;
-											cokPacket << commands::COK;
-											cokPacket << augmentingLobbyID;
-											globalPlayerPtr->socket->send(cokPacket);
-											PlayerLobby* tempNewPlayerLobby = new PlayerLobby;	//Igualar el socket/nombre/lobbyID al del vector general.
-											tempNewPlayerLobby->socket = globalPlayerPtr->socket;
-											tempNewPlayerLobby->name = globalPlayerPtr->name;
-											tempNewPlayerLobby->lobbyID = augmentingLobbyID;
-											globalPlayerPtr->lobbyID = augmentingLobbyID;
-											lobbies[int(lobbies.size()) - 1]->players.push_back(tempNewPlayerLobby);
-											//lobbies[lbbyIndx]->playerNumber++;
-											augmentingLobbyID++;
-											std::cout << "COK sent with " << lobbies.size() << " lobbies" << std::endl;
-
 										}
 									}
-									else { //primer create - retocar
+									if (canCreate) { //primer create - retocar
 										//COK
 										packet >> desiredMaxPlayers;
 										packet >> desiredMaxTurns;
@@ -612,7 +577,6 @@ void ControlServidor()
 										std::cout << "COK sent" << std::endl;
 										std::cout << "COK sent with " << lobbies.size() << " lobbies" << std::endl;
 									}
-
 									break;
 								}
 								}	//</Switch>
