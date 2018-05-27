@@ -161,6 +161,7 @@ void receiveFunction(sf::TcpSocket* socket, bool* _connected) {
 					PrintPlayerNames();
 					break;
 				case commands::MSG:
+					std::cout << "MESSAGE RECIEVED" << std::endl;
 					packet >> str >> str2;
 					addMessage(str + str2);
 
@@ -330,8 +331,6 @@ void blockeComunication() {
 	while (!done && (st == sf::Socket::Status::Done) && connected)
 	{
 
-		std::cout << "PRE NAME REPLY" << std::endl;
-
 		//name enter phase
 		while (!nameEntered) {
 			//hacer que el usuario escriba el nombre
@@ -348,20 +347,23 @@ void blockeComunication() {
 			while(!nameReply){} //espera a respuesta de server para cambiar este bool
 		}
 
-		std::cout << "PRE LOBBY REPLY" << std::endl;
 		while (!lobbyReply) {} //espera a respuesta de server LIS para cambiar este bool
-		std::cout << "POS LOBBY REPLY" << std::endl;
 
-
-		//SELECT LOBBY
-		std::cout << "PRE LOBBY SELECTED" << std::endl;
 		while (!lobbySelected) {	//lobbySelected = true en el recieve del JKO
 			//PRINTLOBBY
 			char filter = 'n';
 			char joinMode = 'j';
 
-			std::cout << "Want to join (j) or create (c) a lobby? ";
-			std::cin >> joinMode;
+			bool correct = false;
+			while (!correct) {
+				std::cin.clear();
+				std::cin.ignore(10000, '\n');
+				std::cout << "Want to join (j) or create (c) a lobby? ";
+				std::cin >> joinMode;
+				if ((joinMode == 'j' || joinMode == 'J') || (joinMode == 'c' || joinMode == 'C')) {
+					correct = true;
+				} else { std::cout << "INCORRECT INPUT. PLEASE ENTER A VALID OPTION! Try again..." << std::endl; }
+			}
 
 			if (joinMode == 'j' || joinMode == 'J') {
 				PrintLobby();
@@ -379,8 +381,17 @@ void blockeComunication() {
 				//cin para idLobby
 				int desiredLobby = -1;
 				std::string pass = "";
-				std::cout << "Please type the number of the lobby you want to join: ";
-				std::cin >> desiredLobby;
+				correct = false;
+				while (!correct) {
+					std::cin.clear();
+					std::cin.ignore(10000, '\n');
+					std::cout << "Please type the number of the lobby you want to join: ";
+					std::cin >> desiredLobby;
+					if (desiredLobby < lobbies.size() && desiredLobby >= 0) {
+						correct = true;
+					} else { std::cout << "INCORRECT INPUT. PLEASE ENTER THE NUMBER OF THE LOBBY! Try again..." << std::endl; }
+				}
+				
 				//if(pw) cin para pass si necesario
 				if (lobbies[desiredLobby].pw) {
 					std::cout << "Password Needed: ";
@@ -397,25 +408,48 @@ void blockeComunication() {
 			}
 			else if (joinMode == 'c' || joinMode == 'C') {	//CREATE LOBBY
 				std::string desiredLobbyName = "";
-				int desiredMaxPlayers = 2;
-				int desiredMaxTurns = 2;
+				int desiredMaxPlayers = -1;
+				int desiredMaxTurns = -1;
 				char passW = 'n';
 				bool passWanted = false;
 				std::string desiredPassword = "1234";
 				sf::Packet createLobbyPacket;
 				createLobbyPacket << commands::CRE;
 
+				//LOBBY NAME
 				std::cout << "What name do you want for your lobby? (no spaces):" << std::endl;
 				std::cin >> desiredLobbyName; //MIRAR SI ESTÁ PILLADO
 				createLobbyPacket << desiredLobbyName;
 
-				std::cout << "Max Players?" << std::endl;
-				std::cin >> desiredMaxPlayers;
+				//LOBBY MAX PLAYERS
+				correct = false;
+				while (!correct) {
+					std::cin.clear();
+					std::cin.ignore(10000, '\n');
+					std::cout << "Max Players?" << std::endl;
+					std::cin >> desiredMaxPlayers;
+					if (desiredMaxPlayers > 0 && desiredMaxPlayers <= 4) {
+						correct = true;
+						std::cout << "You wrote: " << desiredMaxPlayers << std::endl;
+					}
+					else { std::cout << "WRONG INPUT. PLEASE ENTER A NUMBER [0, 4]. Try again..." << std::endl; desiredMaxPlayers = -1; }
+				}
 				createLobbyPacket << desiredMaxPlayers;
-
-				std::cout << "Number of turns per player?" << std::endl;
-				std::cin >> desiredMaxTurns;
+				
+				//LOBBY TURNS PER PLAYER
+				correct = false;
+				while (!correct) {
+					std::cin.clear();
+					std::cin.ignore(10000, '\n');
+					std::cout << "Number of turns per player?" << std::endl;
+					std::cin >> desiredMaxTurns;
+					if (desiredMaxTurns > 0 && desiredMaxTurns <= 4) {
+						correct = true;
+					} else { std::cout << "WRONG INPUT. PLEASE ENTER A NUMBER [0, 4]. Try again..." << std::endl; }
+				}
 				createLobbyPacket << desiredMaxTurns;
+
+
 
 				std::cout << "Do you want to put a password? (y/n)" << std::endl;
 				std::cin >> passW;

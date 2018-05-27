@@ -193,16 +193,16 @@ void ControlServidor()
 									if (globalLobbyPtr->checkWords) {
 										std::cout << "CHECKING WORDS" << std::endl;
 										std::string tempWord = " >" + globalLobbyPtr->word;
-										std::cout << "Palabra correcta: " << tempWord << std::endl;
-										std::cout << "Palabra enviada: " << strRec << std::endl;
+										//std::cout << "Palabra correcta: " << tempWord << std::endl;
+										//std::cout << "Palabra enviada: " << strRec << std::endl;
 										PlayerLobby* wordPlayer = globalLobbyPtr->lobbyPlayerPtr; //nos guardamos quien esta escribiendo
 										globalLobbyPtr->DetectPlayerPainting(); // saber quien esta pintando
 										if (strcmp(tempWord.c_str(), strRec.c_str()) == 0) { //comparar que sea la palabra correcta
-											std::cout << "Palabra enviada: " << strRec << std::endl;
+											//std::cout << "Palabra enviada: " << strRec << std::endl;
 											sendWord = false; //no enviar palabra correcta al chat
 											//comprobar si ha sido dibujante o no
 											if (wordPlayer->turn != globalLobbyPtr->lobbyPlayerPtr->turn && !wordPlayer->answered) { //asegurarse que no se repitan
-												std::cout << "NO HABIA RESPONDIDO ANTES " << wordPlayer->answered << " Y NO ES EL QUE PINTA" << wordPlayer->name << std::endl;
+												//std::cout << "NO HABIA RESPONDIDO ANTES " << wordPlayer->answered << " Y NO ES EL QUE PINTA" << wordPlayer->name << std::endl;
 												//gud al jugador, supongo que habria que calcular puntos
 												wordPlayer->answered = true;
 												wordPlayer->score += 1;
@@ -245,6 +245,10 @@ void ControlServidor()
 										//SE MANDA EL MENSAJE A TODOS LOS JUGADORES DEL LOBBY
 										newPacket.clear();
 										newPacket << commands::MSG << globalPlayerPtr->name << strRec;
+										std::cout << "SE MANDA EL MENSAJE DE VUELTA AL LOBBY: " << globalLobbyPtr->name << ". JUGADOR CON PUERTO: " << globalLobbyPtr->lobbyPlayerPtr->socket->getRemotePort() << std::endl;
+										for (int indice = 0; indice < lobbies.size(); indice++) {
+											std::cout << lobbies[indice]->name << std::endl;
+										}
 										globalLobbyPtr->SendToAll(newPacket);
 									}
 
@@ -275,7 +279,7 @@ void ControlServidor()
 											lisPacket << lobbies[i]->maxPlayers;
 											int playerSize = lobbies[i]->players.size();
 											lisPacket << playerSize;
-											std::cout << i << ":  " << lobbies[i]->name << " " << lobbies[i]->maxPlayers << " " << lobbies[i]->needPass << std::endl;
+											//std::cout << i << ":  " << lobbies[i]->name << " " << lobbies[i]->maxPlayers << " " << lobbies[i]->needPass << std::endl;
 										}
 										client.send(lisPacket);
 										//CAMBIADO PARA QUE SOLO MANDE A LOS DE SU LOBBY EN EL JOI ========================================================================================================================= VA AL NUEVO COMANDO DE JOIN LOBBY
@@ -297,7 +301,7 @@ void ControlServidor()
 									//IDENTIFICAR QUÉ LOBBY ESTAMOS
 									if (!globalLobbyPtr->gameStarted) {
 										globalLobbyPtr->lobbyPlayerPtr->ready = true;
-										std::cout << globalLobbyPtr->lobbyPlayerPtr->name << std::endl;
+										std::cout << "THIS PLAYER IS READY: " << globalLobbyPtr->lobbyPlayerPtr->name << "IN THIS LOBBY: " << globalLobbyPtr->name << std::endl;
 										globalLobbyPtr->remainingPlayers = globalLobbyPtr->RemainingReady();
 			//CAMBIAR PARA QUE SOLO MANDE A LOS DE SU LOBBY =========================================================================================================================
 										/*//avisamos a todos que el jugador está ready
@@ -353,7 +357,7 @@ void ControlServidor()
 											//crear orden de los turnos
 											globalLobbyPtr->word = PickWord();
 											globalLobbyPtr->globalCurWord = word;
-											std::cout << "GAME STARTED: CURR WORLD" << globalLobbyPtr->globalCurWord << std::endl;
+											std::cout << "GAME STARTED: CURR WORD" << globalLobbyPtr->globalCurWord << std::endl;
 											globalLobbyPtr->sizeWord = globalLobbyPtr->word.size();
 											for (int i = 0; i < globalLobbyPtr->playerNumber; i++) {
 												globalLobbyPtr->players[i]->turn = i;
@@ -420,7 +424,7 @@ void ControlServidor()
 									break;
 
 								case JOI: {	//FALTA HACER QUE EL PLAYER SE AÑADA AL LOBBY Y SE NOTIFIQUE (DONE)
-									std::cout << "received JOI" << std::endl;
+									//std::cout << "received JOI" << std::endl;
 									int desiredLobbyID = -1;
 									packet >> desiredLobbyID;
 									for (int lbbyIndx = 0; lbbyIndx < lobbies.size(); lbbyIndx++) {
@@ -512,7 +516,7 @@ void ControlServidor()
 									packet >> desiredLobbyName;
 									bool nameTaken = false;
 									bool canCreate = true;
-									std::cout << "received CRE" << std::endl;
+									//std::cout << "received CRE" << std::endl;
 									if (lobbies.size() > 0) {
 										for (int lobbiesIndex = 0; lobbiesIndex < lobbies.size(); lobbiesIndex++) {
 											if (strcmp(lobbies[lobbiesIndex]->name.c_str(), desiredLobbyName.c_str()) == 0) { nameTaken = true; }
@@ -524,7 +528,7 @@ void ControlServidor()
 											sf::Packet cnoPacket;
 											cnoPacket << commands::CNO;
 											globalPlayerPtr->socket->send(cnoPacket);
-											std::cout << "CNO sent" << std::endl;
+											//std::cout << "CNO sent" << std::endl;
 										}
 									}
 									if (canCreate) { //primer create - retocar
@@ -568,14 +572,14 @@ void ControlServidor()
 										tempNewPlayerLobby->name = globalPlayerPtr->name;
 										tempNewPlayerLobby->lobbyID = augmentingLobbyID;
 										globalPlayerPtr->lobbyID = augmentingLobbyID;
-										std::cout << "Augmenting lobby id " << augmentingLobbyID << std::endl;
+										//std::cout << "Augmenting lobby id " << augmentingLobbyID << std::endl;
 										lobbies[int(lobbies.size()) - 1]->players.push_back(tempNewPlayerLobby);
-										std::cout << "Added player who created with port: " << globalPlayerPtr->socket->getRemotePort() << " | " << tempNewPlayerLobby->socket->getRemotePort() << std::endl;
+										//std::cout << "Added player who created with port: " << globalPlayerPtr->socket->getRemotePort() << " | " << tempNewPlayerLobby->socket->getRemotePort() << std::endl;
 										//lobbies[lbbyIndx]->playerNumber++;
 										//std::cout << lobbies[int(lobbies.size()) - 1]->players[0]->name << std::endl;
 										augmentingLobbyID++;
-										std::cout << "COK sent" << std::endl;
-										std::cout << "COK sent with " << lobbies.size() << " lobbies" << std::endl;
+										//std::cout << "COK sent" << std::endl;
+										//std::cout << "COK sent with " << lobbies.size() << " lobbies" << std::endl;
 									}
 									break;
 								}
@@ -591,7 +595,7 @@ void ControlServidor()
 								if (globalLobbyPtr->gameStarted) {
 									std::cout << "DISCONNECTED GAME STARTED" << std::endl;
 									if (globalLobbyPtr->lobbyPlayerPtr->turn == globalLobbyPtr->curTurn % globalLobbyPtr->playerNumber && globalLobbyPtr->players.size() > 2) globalLobbyPtr->startNewTurn = true;  //si es el que pinta empieza nuevo turno
-									if (globalLobbyPtr->startNewTurn) std::cout << "el k dibujaba se ha desconectado" << std::endl;
+									if (globalLobbyPtr->startNewTurn) std::cout << "El k dibujaba se ha desconectado" << std::endl;
 								}
 
 								
@@ -609,23 +613,24 @@ void ControlServidor()
 
 								//FALTA PONER QUE SE BORRE DEL VECTOR GENERAL DE PLAYERS EN EL MAIN.
 								bool found = false;
-								int i = 0;
-								while (!found && i < globalLobbyPtr->players.size()) {
-									if (globalLobbyPtr->players[i]->socket->getRemotePort() == client.getRemotePort()) {
+								int playersLobbyIndex = 0;
+								while (!found && playersLobbyIndex < globalLobbyPtr->players.size()) {
+									if (globalLobbyPtr->players[playersLobbyIndex]->socket->getRemotePort() == client.getRemotePort()) {
 										std::cout << "DISCONNECTED ERASE PLAYER FROM LOBBY" << std::endl;
 										globalLobbyPtr->scoreboard.DeletePlayer(*globalLobbyPtr->lobbyPlayerPtr);	//Si se pasa un player que no está en el scoreboard no hace nada. Como en el caso que la partida no haya empezado.
-										globalLobbyPtr->players.erase(globalLobbyPtr->players.begin() + i);
+										globalLobbyPtr->players.erase(globalLobbyPtr->players.begin() + playersLobbyIndex);
 										if (globalLobbyPtr->players.size() == 1) {
 											std::cout << "DISCONNECTED END GAME" << std::endl;
 											sf::Packet packet;
 											packet << commands::END << "ALL DISCONNECTED";
 											globalLobbyPtr->players[0]->socket->send(packet);
+											std::cout << "LOBBY END NAME: " << globalLobbyPtr->name << std::endl;
 											//running = false;	//NO DEBERÏA CERRARSE
 											sf::Packet lisPacket;
 											lisPacket << commands::LIS;
 											int lobSize = lobbies.size();
 											lisPacket << lobSize;
-											std::cout << "sending LIS " << lobbies.size() << std::endl;
+											//std::cout << "sending LIS " << lobbies.size() << std::endl;
 											for (int i = 0; i < lobbies.size(); i++) {
 												lisPacket << lobbies[i]->name;
 												lisPacket << lobbies[i]->lobbyID;
@@ -638,10 +643,17 @@ void ControlServidor()
 											globalLobbyPtr->players[0]->socket->send(lisPacket);
 
 											//RESETEAMOS EL LOBBYID DEL PLAYER QUE QUEDA A -1 EN EL VECTOR DE PLAYERS DEL MAIN
-											for (int playersConnectedIndex = 0; playersConnectedIndex < globalPlayers.size(); playersConnectedIndex++) {
-												if (globalPlayers[playersConnectedIndex]->socket->getRemotePort() != globalLobbyPtr->players[0]->socket->getRemotePort()) {
-													globalPlayers[playersConnectedIndex]->lobbyID = -1;
+											int playersReseted = 0;
+											int playersConnectedIndex = 0;
+											//ESTE BUCLE SOLO SE EJECUTA HASTA QUE SE HAN RESETEADO LOS X JUGADORES DEL LOBBY. DE ESTA MANERA AHORRAMOS ALGO DE TIEMPO DE EJECUCIÓN EVITANDO QUE ITERE POR TODO EL VECTOR SI YA HA RESETEADO A LOS QUE ERA NECESARIO.
+											while (playersReseted < globalLobbyPtr->players.size() && playersConnectedIndex < globalPlayers.size()) {
+												for (int lobbyPlayersConnectedIndex = 0; lobbyPlayersConnectedIndex < globalLobbyPtr->players.size(); lobbyPlayersConnectedIndex++) {
+													if (globalPlayers[playersConnectedIndex]->socket->getRemotePort() == globalLobbyPtr->players[lobbyPlayersConnectedIndex]->socket->getRemotePort()) {
+														globalPlayers[playersConnectedIndex]->lobbyID = -1;
+														playersReseted++;
+													}
 												}
+												playersConnectedIndex++;
 											}
 
 											//BORRAR EL LOBBY:
@@ -650,7 +662,7 @@ void ControlServidor()
 											while (lobbiesIndex < lobbies.size() && !lobbyFound) {
 												if (lobbies[lobbiesIndex]->lobbyID == globalLobbyPtr->lobbyID) {
 													//BORRAR ESTE LOBBY
-													std::cout << "ERASING LOBBY" << lobbies[lobbiesIndex]->name << std::endl;
+													std::cout << "ERASING LOBBY: " << lobbies[lobbiesIndex]->name << std::endl;
 													lobbies.erase(lobbies.begin() + lobbiesIndex);
 													lobbyFound = true;
 												}
@@ -663,7 +675,7 @@ void ControlServidor()
 											while (lobbiesIndex < lobbies.size() && !lobbyFound) {
 												if (lobbies[lobbiesIndex]->lobbyID == globalLobbyPtr->lobbyID) {
 													//BORRAR ESTE LOBBY
-													std::cout << "ERASING LOBBY" << lobbies[lobbiesIndex]->name << std::endl;
+													std::cout << "ERASING LOBBY: " << lobbies[lobbiesIndex]->name << std::endl;
 													lobbies.erase(lobbies.begin() + lobbiesIndex);
 													lobbyFound = true;
 												}
@@ -672,9 +684,9 @@ void ControlServidor()
 										}
 										found = true;
 									}
-									i++;
+									playersLobbyIndex++;
 								}
-								std::cout << "DISCONNECTED LOBBY PLAYERS AFTER" << globalLobbyPtr->players.size() << std::endl;
+								//std::cout << "DISCONNECTED LOBBY PLAYERS AFTER" << globalLobbyPtr->players.size() << std::endl;
 							}
 
 							//BORRAMOS AL PLAYER DEL VECTOR DE PLAYERS GLOBAL DEL MAIN
@@ -742,7 +754,7 @@ void ControlServidor()
 								}*/
 							}
 							else {
-					//CAMBIAR PARA MANDARLO A LOS DEL LOBBY SOLO
+								//CAMBIAR PARA MANDARLO A LOS DEL LOBBY SOLO
 								/*for (std::list<sf::TcpSocket*>::iterator it2 = clients.begin(); it2 != clients.end(); ++it2) {
 									sf::TcpSocket& tempSok = **it2;
 									sf::Packet newPacket;
@@ -792,6 +804,7 @@ void ControlServidor()
 								while (lobbiesIndex < lobbies.size() && !lobbyFound) {
 									if (lobbies[lobbiesIndex]->lobbyID == globalLobbyPtr->lobbyID) {
 										//BORRAR ESTE LOBBY
+										std::cout << "LOBBY " << lobbies[lobbiesIndex]->name << "WAS ERASED" << std::endl;
 										lobbies.erase(lobbies.begin() + lobbiesIndex);
 										lobbyFound = true;
 									}
